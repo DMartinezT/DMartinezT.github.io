@@ -1,1 +1,127 @@
-Hello World
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Diego Martinez Taboada</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; margin: 0; padding: 0; }
+        .container { width: 80%; margin: auto; overflow: hidden; }
+        header { background: #444b4f; color: white; padding-top: 30px; min-height: 70px; border-bottom: #f4f4f4 3px solid; }
+        header a { color: #fff; text-decoration: none; text-transform: uppercase; font-size: 16px; }
+        header ul { padding: 0; list-style: none; }
+        header li { float: left; display: inline; padding: 0 20px 0 20px; }
+        header #branding { float: left; }
+        header #branding h1 { margin: 0; }
+        header nav { float: right; margin-top: 10px; }
+        header .highlight, header .current a { color: #fff; font-weight: bold; }
+        header a:hover { color: #ffffff; font-weight: bold; }
+        .button { height: 38px; background: #fff; border: 0; padding-left: 20px; padding-right: 20px; color: #ffffff; }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div id="branding">
+                <h1><span class="highlight">Diego Martinez Taboada</h1>
+            </div>
+            <nav>
+                <ul>
+                    <li class="current"><a href="#about">About</a></li>
+                    <li><a href="#education">Education</a></li>
+                    <li><a href="#research">Research</a></li>
+                    <li><a href="#publications">Publications</a></li>
+                    <li><a href="#contact">Contact</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <section id="about">
+        <div class="container">
+            <h2>About Me</h2>
+            <!-- Image tag below -->
+            <img src="profile.jpg" alt="Your Name" style="max-width: 200px; height: auto; border-radius: 50%;">
+            <p> I am a second year PhD student in the <a href="https://www.cmu.edu/dietrich/statistics-datascience/index.html" target="_blank">Department of Statistics and Data Science</a> at Carnegie Mellon University, where I am advised by Prof. <a href="https://www.stat.cmu.edu/~aramdas/" target="_blank">Aaditya Ramdas</a>.</p>
+            <!-- Adding Links --> 
+            <p>
+                <a href="https://scholar.google.com/citations?user=9-p1MCsAAAAJ&hl=en" target="_blank">Google Scholar Profile</a> |
+                <a href="https://www.linkedin.com/in/diego-martinez-taboada/" target="_blank">LinkedIn Profile</a> |
+                <a href="CV.pdf" target="_blank">CV</a>  
+            </p>
+        </div>
+    </section>
+
+    <section id="education">
+        <div class="container">
+            <h2>Education</h2>
+            <ul>
+                <li>
+                    <strong>Carnegie Mellon University</strong>, PhD in Statistics and Data Science <br>
+                    <em>2022 -- present </em>
+                </li>
+                <li>
+                    <strong>University of Oxford</strong>, MSc in Statistical Science <br>
+                    <em>2021 -- 2022</em>
+                </li>
+                <li>
+                    <strong>University of Santiago de Compostela</strong>, BSc in Mathematics <br>
+                    <em>2017 -- 2021</em>
+                </li>
+            </ul>
+        </div>
+    </section>
+    
+
+    <section id="research">
+        <div class="container">
+            <h2>Research</h2>
+            <p>I am broadly interested in developing novel statistical theory that sheds light on important problems. In particular, I have recently been focusing on</p>
+            <ul>
+                <li>
+                   Kernel methods
+                </li>
+                <li>
+                    Causal inference
+                </li>
+                <li>
+                    Sequential statistics
+                </li>
+            </ul>
+            Related topics such as general nonparametric statistics, bandits, reinforcement learning, NTK or distributional metrics (f-divergences, IPMs, Wasserstein distances) will catch my eye!
+        </div>
+    </section>
+
+    <section id="publications">
+        <div class="container">
+            <h2>Publications</h2>
+            <ol>
+                <li>
+                    <strong>Counterfactual Density Estimation using Kernel Stein Discrepancies</strong><br>
+                    <em>Diego Martinez Taboada</em>, Aaditya Ramdas, Edward H. Kennedy<br>
+                    <span>Under Review, 2024</span>
+                </li>
+                <li>
+                    <strong>En Efficient Doubly-Robust Test for the Kernel Treatment Effect</strong><br>
+                    <em>Diego Martinez Taboada</em>, Edward H. Kennedy<br>
+                    <span>Neural Information Processing Systems (NeurIPS), 2023.</span>
+                </li>
+                <!-- Add more list items as needed -->
+            </ol>
+        </div>
+    </section>
+    
+
+    <section id="contact">
+        <div class="container">
+            <h2>Contact Information</h2>
+            <p>diegomar AT andrew DOT cmu FULLSTOP edu</p>
+</div>
+</section>
+<footer>
+    <div class="container">
+        <p>&copy; 2024 Diego Martinez Taboada. All rights reserved.</p>
+    </div>
+</footer>
+</body>
+</html>
+
+
