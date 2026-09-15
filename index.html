@@ -1,727 +1,154 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Diego Martinez Taboada</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<style>
-  :root {
-    --ink: #1B2430;
-    --paper: #FAF8F4;
-    --rust: #B5532C;
-    --line: #DCD7CC;
-    --slate: #5C6670;
-    --paper-deep: #F1EDE5;
-
-    --display: "Source Serif 4", serif;
-    --body: "IBM Plex Sans", sans-serif;
-    --mono: "IBM Plex Mono", monospace;
-  }
-
-  * { box-sizing: border-box; }
-
-  html { scroll-behavior: smooth; }
-
-  body {
-    margin: 0;
-    font-family: var(--body);
-    color: var(--ink);
-    background: var(--paper);
-    -webkit-font-smoothing: antialiased;
-  }
-
-  a { color: var(--rust); text-decoration: none; }
-  a:hover { text-decoration: underline; }
-  a:focus-visible, button:focus-visible {
-    outline: 2px solid var(--rust);
-    outline-offset: 3px;
-  }
-
-  /* ---------- Layout shell ---------- */
-
-  .shell {
-    display: grid;
-    grid-template-columns: 280px 1fr;
-    max-width: 1180px;
-    margin: 0 auto;
-    min-height: 100vh;
-  }
-
-  /* ---------- Sidebar ---------- */
-
-  .sidebar {
-    border-right: 1px solid var(--line);
-    padding: 56px 36px 56px 0;
-    position: sticky;
-    top: 0;
-    align-self: start;
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-  }
-
-  .sidebar .name {
-    font-family: var(--display);
-    font-size: 1.7rem;
-    font-weight: 600;
-    line-height: 1.25;
-    letter-spacing: -0.01em;
-    margin: 0 0 6px;
-  }
-
-  .sidebar .role {
-    font-family: var(--mono);
-    font-size: 0.78rem;
-    letter-spacing: 0.04em;
-    color: var(--slate);
-    text-transform: uppercase;
-    margin: 0 0 36px;
-    line-height: 1.6;
-  }
-
-  .sidebar nav ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-  }
-
-  .sidebar nav li { margin-bottom: 6px; }
-
-  .sidebar nav a {
-    display: block;
-    color: var(--ink);
-    font-size: 0.92rem;
-    padding: 7px 0;
-    position: relative;
-    transition: color 0.15s ease, padding-left 0.15s ease;
-  }
-
-  .sidebar nav a::before {
-    content: "";
-    position: absolute;
-    left: -36px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 22px;
-    height: 1px;
-    background: var(--rust);
-    opacity: 0;
-    transition: opacity 0.15s ease, left 0.15s ease;
-  }
-
-  .sidebar nav a:hover,
-  .sidebar nav a:focus-visible {
-    color: var(--rust);
-    text-decoration: none;
-    padding-left: 10px;
-  }
-
-  .sidebar nav a:hover::before,
-  .sidebar nav a:focus-visible::before {
-    opacity: 1;
-    left: -14px;
-  }
-
-  .sidebar-foot {
-    margin-top: auto;
-    font-family: var(--mono);
-    font-size: 0.72rem;
-    color: var(--slate);
-    line-height: 1.7;
-  }
-
-  /* ---------- Main ---------- */
-
-  main {
-    padding: 56px 48px 80px;
-  }
-
-  section { margin-bottom: 76px; }
-  section:last-child { margin-bottom: 0; }
-
-  .eyebrow {
-    font-family: var(--mono);
-    font-size: 0.75rem;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--rust);
-    margin: 0 0 10px;
-  }
-
-  h2 {
-    font-family: var(--display);
-    font-size: 1.55rem;
-    font-weight: 600;
-    margin: 0 0 22px;
-    letter-spacing: -0.01em;
-  }
-
-  /* ---------- Hero / About ---------- */
-
-  .hero {
-    display: grid;
-    grid-template-columns: 168px 1fr;
-    gap: 36px;
-    align-items: start;
-    margin-bottom: 28px;
-  }
-
-  .hero img {
-    width: 168px;
-    height: 168px;
-    border-radius: 6px;
-    object-fit: cover;
-    border: 1px solid var(--line);
-  }
-
-  .hero-text p {
-    margin: 0 0 14px;
-    font-size: 1rem;
-    line-height: 1.75;
-    color: var(--ink);
-    max-width: 56ch;
-  }
-
-  .hero-text .lede {
-    font-family: var(--display);
-    font-size: 1.18rem;
-    line-height: 1.6;
-    color: var(--ink);
-  }
-
-  .links-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px 18px;
-    font-family: var(--mono);
-    font-size: 0.82rem;
-    margin-top: 18px;
-  }
-
-  .links-row a {
-    color: var(--ink);
-    border-bottom: 1px solid var(--line);
-    padding-bottom: 1px;
-    transition: border-color 0.15s ease, color 0.15s ease;
-  }
-
-  .links-row a:hover {
-    color: var(--rust);
-    border-color: var(--rust);
-    text-decoration: none;
-  }
-
-  /* ---------- Concentration band — signature divider ---------- */
-
-  .band {
-    width: 100%;
-    height: 34px;
-    margin: 8px 0 0;
-    display: block;
-  }
-
-  .band path.bound { fill: var(--rust); opacity: 0.13; }
-  .band line.mean { stroke: var(--slate); stroke-width: 1; stroke-dasharray: 2 4; }
-
-  /* ---------- Education ---------- */
-
-  .edu-list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    border-top: 1px solid var(--line);
-  }
-
-  .edu-item {
-    display: grid;
-    grid-template-columns: 130px 1fr;
-    gap: 24px;
-    padding: 18px 0;
-    border-bottom: 1px solid var(--line);
-  }
-
-  .edu-item .years {
-    font-family: var(--mono);
-    font-size: 0.8rem;
-    color: var(--slate);
-    padding-top: 2px;
-  }
-
-  .edu-item .what strong {
-    font-family: var(--display);
-    font-weight: 600;
-    font-size: 1.02rem;
-    display: block;
-    margin-bottom: 2px;
-  }
-
-  .edu-item .what span {
-    font-size: 0.92rem;
-    color: var(--slate);
-  }
-
-  /* ---------- Research ---------- */
-
-  .research-text p {
-    font-size: 1rem;
-    line-height: 1.8;
-    max-width: 64ch;
-    margin: 0;
-  }
-
-  .research-text strong {
-    font-weight: 600;
-    border-bottom: 1px solid var(--line);
-  }
-
-  /* ---------- Preprints / Publications ---------- */
-
-  .pub-list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    counter-reset: pub;
-  }
-
-  .pub-item {
-    counter-increment: pub;
-    display: grid;
-    grid-template-columns: 34px 1fr;
-    gap: 18px;
-    padding: 20px 0;
-    border-bottom: 1px solid var(--line);
-  }
-
-  .pub-list .pub-item:first-child { border-top: 1px solid var(--line); }
-
-  .pub-item::before {
-    content: counter(pub, decimal-leading-zero);
-    font-family: var(--mono);
-    font-size: 0.8rem;
-    color: var(--slate);
-    padding-top: 3px;
-  }
-
-  .pub-title {
-    font-family: var(--display);
-    font-weight: 600;
-    font-size: 1.02rem;
-    line-height: 1.45;
-    margin: 0 0 6px;
-  }
-
-  .pub-authors {
-    font-size: 0.92rem;
-    color: var(--ink);
-    margin: 0 0 4px;
-  }
-
-  .pub-authors .me {
-    text-decoration: underline;
-    text-decoration-color: var(--line);
-    text-decoration-thickness: 1.5px;
-  }
-
-  .pub-venue {
-    font-family: var(--mono);
-    font-size: 0.8rem;
-    color: var(--slate);
-    margin: 0 0 8px;
-  }
-
-  .pub-links {
-    font-family: var(--mono);
-    font-size: 0.78rem;
-    display: flex;
-    gap: 14px;
-  }
-
-  .pub-links a {
-    color: var(--rust);
-    border-bottom: 1px solid transparent;
-  }
-
-  .pub-links a:hover {
-    text-decoration: none;
-    border-bottom-color: var(--rust);
-  }
-
-  .status-tag {
-    display: inline-block;
-    font-family: var(--mono);
-    font-size: 0.7rem;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--slate);
-    border: 1px solid var(--line);
-    border-radius: 3px;
-    padding: 2px 7px;
-    margin-bottom: 8px;
-  }
-
-  /* ---------- Contact ---------- */
-
-  .contact-card {
-    border: 1px solid var(--line);
-    border-radius: 6px;
-    padding: 28px 32px;
-    background: var(--paper-deep);
-    max-width: 480px;
-  }
-
-  .contact-card p {
-    margin: 0;
-    font-family: var(--mono);
-    font-size: 0.95rem;
-    line-height: 1.8;
-  }
-
-  .contact-card .label {
-    font-family: var(--mono);
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: var(--slate);
-    margin: 0 0 10px;
-  }
-
-  footer {
-    border-top: 1px solid var(--line);
-    padding: 28px 48px;
-    font-family: var(--mono);
-    font-size: 0.75rem;
-    color: var(--slate);
-  }
-
-  /* ---------- Mobile nav ---------- */
-
-  .mobile-bar {
-    display: none;
-  }
-
-  /* ---------- Responsive ---------- */
-
-  @media (max-width: 900px) {
-    .shell { grid-template-columns: 1fr; }
-
-    .sidebar {
-      position: relative;
-      height: auto;
-      border-right: none;
-      border-bottom: 1px solid var(--line);
-      padding: 28px 24px;
-      flex-direction: row;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 12px;
-    }
-
-    .sidebar .name { font-size: 1.4rem; margin: 0; }
-    .sidebar .role { display: none; }
-    .sidebar-foot { display: none; }
-
-    .sidebar nav ul {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 4px 16px;
-    }
-
-    .sidebar nav a::before { display: none; }
-    .sidebar nav a { padding: 4px 0; font-size: 0.85rem; }
-    .sidebar nav a:hover { padding-left: 0; }
-
-    main { padding: 40px 24px 60px; }
-
-    .hero {
-      grid-template-columns: 1fr;
-      gap: 20px;
-    }
-
-    .hero img { width: 120px; height: 120px; }
-
-    .edu-item, .pub-item {
-      grid-template-columns: 1fr;
-      gap: 6px;
-    }
-
-    .edu-item .years { order: 2; }
-    .pub-item::before { display: none; }
-
-    footer { padding: 24px; }
-  }
-
-  /* Reduced motion */
-  @media (prefers-reduced-motion: reduce) {
-    html { scroll-behavior: auto; }
-    * { transition: none !important; }
-  }
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f8fa">
+  <meta name="description" content="Diego Martinez Taboada — PhD student in Statistics and Data Science at Carnegie Mellon University. Research in statistics, artificial intelligence, and probability.">
+  <title>Diego Martinez Taboada · Statistics, AI &amp; Probability</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;450;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500&amp;family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,400&amp;display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="assets/math-network.js" defer></script>
+  <script src="background.js" defer></script>
+  <script src="script.js" defer></script>
 </head>
 <body>
-<div class="shell">
-
-  <aside class="sidebar">
-    <div>
-      <p class="name">Diego Martinez&nbsp;Taboada</p>
-      <p class="role">PhD Candidate<br>Statistics &amp; Data Science<br>Carnegie Mellon University</p>
+  <div class="math-background" aria-hidden="true"><canvas id="math-background"></canvas></div>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="wordmark" href="#home" aria-label="Diego Martinez Taboada, home">dmt</a>
+      <button class="nav-toggle" type="button" aria-controls="main-navigation" aria-expanded="false">Menu <span class="menu-icon" aria-hidden="true"></span></button>
+      <nav class="navigation" id="main-navigation" aria-label="Main navigation">
+        <a href="#about">About</a>
+        <a href="#research">Research</a>
+        <a href="#notes">Research notes</a>
+        <a href="#education">Background</a>
+        <a href="#contact">Contact</a>
+        <a href="CV.pdf" class="cv-link" target="_blank" rel="noopener">CV <span aria-hidden="true">↗</span></a>
+      </nav>
     </div>
-    <nav aria-label="Section navigation">
-      <ul>
-        <li><a href="#about">About</a></li>
-        <li><a href="#education">Education</a></li>
-        <li><a href="#research">Research</a></li>
-        <li><a href="#preprints">Preprints</a></li>
-        <li><a href="#publications">Publications</a></li>
-        <li><a href="#contact">Contact</a></li>
-      </ul>
-    </nav>
-    <div class="sidebar-foot">
-      Pittsburgh, PA<br>
-      Updated 2026
-    </div>
-  </aside>
+  </header>
 
-  <main>
-
-    <section id="about">
-      <p class="eyebrow">About</p>
-      <div class="hero">
-        <img src="profile.jpg" alt="Portrait of Diego Martinez Taboada">
-        <div class="hero-text">
-          <p class="lede">
-            I'm a fourth-year PhD student in the
-            <a href="https://www.cmu.edu/dietrich/statistics-datascience/index.html" target="_blank">Department of Statistics and Data Science</a>
-            at Carnegie Mellon University, advised by Prof.
-            <a href="https://www.stat.cmu.edu/~aramdas/" target="_blank">Aaditya Ramdas</a>.
-          </p>
-          <p>
-            Previously, I got to learn about mathematics and statistics at
-            the <a href="https://www.stats.ox.ac.uk" target="_blank">University of Oxford</a>, 
-            <a href="https://www.sorbonne-universite.fr/en" target="_blank">Sorbonne Université</a>, and  
-            <a href="https://www.usc.gal/en" target="_blank">Universidade de Santiago de Compostela</a>. 
-            I have also done internships on cool machine learning projects at 
-            <a href="https://www.gresearch.com" target="_blank">GResearch</a> and
-            <a href="https://citius.gal" target="_blank">CiTIUS</a>.
-          </p>
-          <div class="links-row">
-            <a href="https://scholar.google.com/citations?user=9-p1MCsAAAAJ&hl=en" target="_blank">Google Scholar</a>
-            <a href="https://www.linkedin.com/in/diego-martinez-taboada/" target="_blank">LinkedIn</a>
-            <a href="CV.pdf" target="_blank">CV (PDF)</a>
-          </div>
+  <main id="main">
+    <section class="hero wrap" id="home" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <h1 id="hero-title">Diego<br>Martinez Taboada</h1>
+        <div class="focus-block">
+          <p class="focus-lead">I spend my time thinking about</p>
+          <ul class="focus-list" aria-label="Research interests">
+            <li><span class="sr-only">statistics</span><span class="typed-phrase" aria-hidden="true" data-phrase="statistics">statistics</span></li>
+            <li><span class="sr-only">AI</span><span class="typed-phrase" aria-hidden="true" data-phrase="AI">AI</span></li>
+            <li><span class="sr-only">probability</span><span class="typed-phrase" aria-hidden="true" data-phrase="probability">probability</span></li>
+          </ul>
+        </div>
+        <div class="hero-links">
+          <a href="https://scholar.google.com/citations?user=9-p1MCsAAAAJ&amp;hl=en" target="_blank" rel="noopener">Google Scholar <span aria-hidden="true">↗</span></a>
+          <a href="https://www.linkedin.com/in/diego-martinez-taboada/" target="_blank" rel="noopener">LinkedIn <span aria-hidden="true">↗</span></a>
+          <a href="mailto:diegomar@andrew.cmu.edu">Email <span aria-hidden="true">↗</span></a>
         </div>
       </div>
-      <svg class="band" viewBox="0 0 1000 34" preserveAspectRatio="none" aria-hidden="true">
-        <path class="bound" d="M0,2 L1000,15 L1000,19 L0,32 Z"></path>
-        <line class="mean" x1="0" y1="17" x2="1000" y2="17"></line>
-      </svg>
+      <figure class="portrait hero-portrait"><img src="profile.jpg" alt="Diego Martinez Taboada" width="280" height="320"><figcaption>Pittsburgh, Pennsylvania</figcaption></figure>
     </section>
 
-    <section id="education">
-      <p class="eyebrow">Education</p>
-      <h2>Background</h2>
-      <ul class="edu-list">
-        <li class="edu-item">
-          <div class="years">2022 — present</div>
-          <div class="what">
-            <strong>Carnegie Mellon University</strong>
-            <span>PhD in Statistics and Data Science</span>
-          </div>
-        </li>
-        <li class="edu-item">
-          <div class="years">2021 — 2022</div>
-          <div class="what">
-            <strong>University of Oxford</strong>
-            <span>MSc in Statistical Science</span>
-          </div>
-        </li>
-        <li class="edu-item">
-          <div class="years">2017 — 2021</div>
-          <div class="what">
-            <strong>University of Santiago de Compostela</strong>
-            <span>BSc in Mathematics</span>
-          </div>
-        </li>
-      </ul>
-    </section>
-
-    <section id="research">
-  <p class="eyebrow">Research</p>
-  <h2>What I work on</h2>
-  <div class="research-text">
-    <p>
-      I'm broadly interested in pushing statistics (both foundational and methodological) to <strong>develop
-      new tools for inference and learning in modern settings</strong>, as well as in understanding
-      <strong>modern deep learning systems</strong> (why and how do deep networks work?).
-    </p>
-    <p>
-      These interests span <strong>high-dimensional concentration</strong> (how do random infinite-dimensional
-      objects — gradients, functions, embeddings — concentrate?), <strong>concentration for complex data
-      structures</strong> (random matrices and operators that need not commute, as arise e.g. in neural network
-      initialization), <strong>sequential decision-making</strong> (working with streams of data rather than
-      fixed datasets, as in bandits), <strong>causal inference</strong> (when the causal target depends in
-      complex ways on the data, as with distributional treatment effects), and <strong>multiple testing</strong>
-      (where evidence across hypotheses is often dependent and the number of hypotheses can be very large).
-    </p>
-  </div>
-</section>
-
-    <section id="preprints">
-      <p class="eyebrow">Preprints</p>
-      <h2>Arxived papers</h2>
-      <ol class="pub-list">
-        <li class="pub-item">
-          <div>
-            <span class="status-tag">Draft</span>
-            <p class="pub-title">Gaussian-efficient testing by betting on the mean of bounded data</p>
-            <p class="pub-authors"><span class="me">Diego Martinez-Taboada</span>, Aaditya Ramdas</p>
-            <div class="pub-links">
-              <a href="https://arxiv.org/abs/2608.21694" target="_blank">arXiv</a>
-              <a href="https://github.com/DMartinezT/betting" target="_blank">code</a>
-              
-            </div>
-          </div>
-        </li>
-        <li class="pub-item">
-          <div>
-            <span class="status-tag">Under review</span>
-            <p class="pub-title">Bentkus-type asymptotic e-values</p>
-            <p class="pub-authors"><span class="me">Diego Martinez-Taboada</span>, Ben Chugg, Aaditya Ramdas</p>
-            <div class="pub-links">
-              <a href="https://arxiv.org/abs/2606.06332" target="_blank">arXiv</a>
-              <a href="https://github.com/DMartinezT/bentkus_evalues" target="_blank">code</a>
-              
-            </div>
-          </div>
-        </li>
-        <li class="pub-item">
-          <div>
-            <span class="status-tag">Under review</span>
-            <p class="pub-title">Intrinsic-dimension empirical Bernstein inequalities for bounded self-adjoint operators</p>
-            <p class="pub-authors"><span class="me">Diego Martinez-Taboada</span>, Aaditya Ramdas</p>
-            <div class="pub-links">
-              <a href="https://arxiv.org/abs/2605.15278" target="_blank">arXiv</a>
-              <a href="https://github.com/DMartinezT/empirical_bernstein_matrix" target="_blank">code</a>
-            </div>
-          </div>
-        </li>
-        <li class="pub-item">
-          <div>
-            <span class="status-tag">Under review</span>
-            <p class="pub-title">Intrinsic dimension concentration inequalities for self-adjoint operators</p>
-            <p class="pub-authors"><span class="me">Diego Martinez-Taboada</span>, Aaditya Ramdas</p>
-            <div class="pub-links">
-              <a href="https://arxiv.org/abs/2602.13465" target="_blank">arXiv</a>
-            </div>
-          </div>
-        </li>
-      </ol>
-    </section>
-
-    <section id="publications">
-      <p class="eyebrow">Publications</p>
-      <h2>Published papers</h2>
-      <ol class="pub-list">
-        <li class="pub-item">
-          <div>
-            <p class="pub-title">Sharp empirical Bernstein bounds for the variance of bounded random variables</p>
-            <p class="pub-authors"><span class="me">Diego Martinez-Taboada</span>, Aaditya Ramdas</p>
-            <p class="pub-venue">International Conference on Machine Learning (ICML), 2026</p>
-            <div class="pub-links">
-              <a href="https://arxiv.org/abs/2505.01987" target="_blank">arXiv</a>
-              <a href="https://github.com/DMartinezT/emp_bernstein_variance" target="_blank">code</a>
-            </div>
-          </div>
-        </li>
-        <li class="pub-item">
-          <div>
-            <p class="pub-title">Nonasymptotic heavy-tailed mean estimation in smooth Banach spaces</p>
-            <p class="pub-authors">Justin Whitehouse, Ben Chugg, <span class="me">Diego Martinez-Taboada</span>, Aaditya Ramdas</p>
-            <p class="pub-venue">Stochastic Processes and their Applications, 2026</p>
-            <div class="pub-links">
-              <a href="https://arxiv.org/abs/2411.11271" target="_blank">arXiv</a>
-              <a href="https://www.sciencedirect.com/science/article/abs/pii/S0304414926000918" target="_blank">Journal</a>
-            </div>
-          </div>
-        </li>
-        <li class="pub-item">
-          <div>
-            <p class="pub-title">Vector-valued self-normalized concentration inequalities beyond sub-Gaussianity</p>
-            <p class="pub-authors"><span class="me">Diego Martinez-Taboada</span>, Tomas Gonzalez-Lara, Aaditya Ramdas</p>
-            <p class="pub-venue">International Conference on Algorithmic Learning Theory (ALT), 2026</p>
-            <div class="pub-links">
-              <a href="https://arxiv.org/abs/2511.03606" target="_blank">arXiv</a>
-              <a href="https://proceedings.mlr.press/v313/martinez-taboada26a.html" target="_blank">Proceedings</a>
-              <a href="https://github.com/DMartinezT/self_normalized" target="_blank">code</a>
-            </div>
-          </div>
-        </li>
-        <li class="pub-item">
-          <div>
-            <p class="pub-title">Empirical Bernstein in smooth Banach spaces</p>
-            <p class="pub-authors"><span class="me">Diego Martinez-Taboada</span>, Aaditya Ramdas</p>
-            <p class="pub-venue">Annals of Applied Probability, 2026</p>
-            <div class="pub-links">
-              <a href="https://arxiv.org/abs/2409.06060" target="_blank">arXiv</a>
-              <a href="https://projecteuclid.org/journals/annals-of-applied-probability/volume-36/issue-3/Empirical-Bernstein-in-smooth-Banach-spaces/10.1214/25-AAP2277.full" target="_blank">Journal</a
-            </div>
-          </div>
-        </li>
-        <li class="pub-item">
-          <div>
-            <p class="pub-title">Sequential Kernelized Stein Discrepancy</p>
-            <p class="pub-authors"><span class="me">Diego Martinez-Taboada</span>, Aaditya Ramdas</p>
-            <p class="pub-venue">International Conference on Artificial Intelligence and Statistics (AISTATS), 2025</p>
-            <div class="pub-links">
-              <a href="https://arxiv.org/abs/2409.17505" target="_blank">arXiv</a>
-              <a href="https://proceedings.mlr.press/v258/martinez-taboada25a.html" target="_blank">Proceedings</a>
-              <a href="https://github.com/DMartinezT/sequential_ksd" target="_blank">code</a>
-            </div>
-          </div>
-        </li>
-        <li class="pub-item">
-          <div>
-            <p class="pub-title">Counterfactual Density Estimation using Kernel Stein Discrepancies</p>
-            <p class="pub-authors"><span class="me">Diego Martinez-Taboada</span>, Edward H. Kennedy</p>
-            <p class="pub-venue">International Conference on Learning Representations (ICLR), 2024</p>
-            <div class="pub-links">
-              <a href="https://arxiv.org/abs/2309.16129" target="_blank">arXiv</a>
-              <a href="https://proceedings.iclr.cc/paper_files/paper/2024/file/ff0da832a110c6537e885cdfbac80a94-Paper-Conference.pdf" target="_blank">Proceedings</a>
-            </div>
-          </div>
-        </li>
-        <li class="pub-item">
-          <div>
-            <p class="pub-title">An Efficient Doubly-Robust Test for the Kernel Treatment Effect</p>
-            <p class="pub-authors"><span class="me">Diego Martinez-Taboada</span>, Aaditya Ramdas, Edward H. Kennedy</p>
-            <p class="pub-venue">Neural Information Processing Systems (NeurIPS), 2023</p>
-            <div class="pub-links">
-              <a href="https://arxiv.org/abs/2304.13237" target="_blank">arXiv</a>
-              <a href="https://proceedings.neurips.cc/paper_files/paper/2023/file/bccdd196d798a51a4961989984a9ed4a-Paper-Conference.pdf" target="_blank">Proceedings</a>
-            </div>
-          </div>
-        </li>
-      </ol>
-    </section>
-
-    <section id="contact">
-      <p class="eyebrow">Contact</p>
-      <h2>Get in touch</h2>
-      <div class="contact-card">
-        <p class="label">Email</p>
-        <p>diegomar [at] andrew [dot] cmu [dot] edu</p>
+    <section class="section wrap about-section" id="about" aria-labelledby="about-title">
+      <div class="section-heading"><span class="section-number" aria-hidden="true">01</span><h2 id="about-title">About me</h2><span class="heading-rule"></span></div>
+      <div class="about-grid">
+        <div class="about-copy">
+          <p class="lede">I'm a PhD student in <a href="https://www.cmu.edu/dietrich/statistics-datascience/index.html" target="_blank" rel="noopener">Statistics and Data Science</a> at Carnegie Mellon University, advised by <a href="https://www.stat.cmu.edu/~aramdas/" target="_blank" rel="noopener">Aaditya Ramdas</a>.</p>
+          <p>Previously, I got to learn about mathematics and statistics at the <a href="https://www.stats.ox.ac.uk" target="_blank" rel="noopener">University of Oxford</a>, <a href="https://www.sorbonne-universite.fr/en" target="_blank" rel="noopener">Sorbonne Université</a>, and <a href="https://www.usc.gal/en" target="_blank" rel="noopener">Universidade de Santiago de Compostela</a>.</p>
+          <p>I have also done internships on cool machine learning projects at <a href="https://www.gresearch.com" target="_blank" rel="noopener">GResearch</a> and <a href="https://citius.gal" target="_blank" rel="noopener">CiTIUS</a>.</p>
+        </div>
+        <div class="about-map" aria-hidden="true"><img src="assets/spain-network.svg" alt="" width="800" height="700" loading="lazy"></div>
       </div>
     </section>
 
+    <section class="section wrap" id="research" aria-labelledby="research-title">
+      <div class="section-heading"><span class="section-number" aria-hidden="true">02</span><h2 id="research-title">Research</h2><span class="heading-rule"></span></div>
+      <div class="research-themes">
+        <div class="research-theme"><span class="math-symbol" aria-hidden="true">x̄</span><h3>Statistics</h3><p>Sequential decision-making, causal inference, and multiple testing. Learning from streams of data and working with dependent evidence.</p></div>
+        <div class="research-theme"><span class="math-symbol" aria-hidden="true">f<sub>θ</sub></span><h3>Artificial intelligence</h3><p>The mathematical foundations of modern deep learning. Understanding the behavior of neural networks, their gradients, and their initialization.</p></div>
+        <div class="research-theme"><span class="math-symbol" aria-hidden="true">ℙ</span><h3>Probability</h3><p>High-dimensional concentration in Hilbert and Banach spaces. Random functions, embeddings, matrices, and operators that need not commute.</p></div>
+      </div>
+
+      <div class="paper-heading" id="preprints"><h3>Preprints</h3><span class="small-label">04 papers</span></div>
+      <ol class="paper-list">
+        <li class="paper">
+          <div class="paper-year">2026<span class="paper-status">Draft</span></div>
+          <div class="paper-content"><h4>Gaussian-efficient testing by betting on the mean of bounded data</h4><p class="paper-authors"><span class="me">Diego Martinez-Taboada</span>, Aaditya Ramdas</p><div class="paper-links"><a href="https://arxiv.org/abs/2608.21694" target="_blank" rel="noopener">arXiv <span aria-hidden="true">↗</span></a><a href="https://github.com/DMartinezT/betting" target="_blank" rel="noopener">Code <span aria-hidden="true">↗</span></a></div></div>
+        </li>
+        <li class="paper">
+          <div class="paper-year">2026<span class="paper-status">Under review</span></div>
+          <div class="paper-content"><h4>Bentkus-type asymptotic e-values</h4><p class="paper-authors"><span class="me">Diego Martinez-Taboada</span>, Ben Chugg, Aaditya Ramdas</p><div class="paper-links"><a href="https://arxiv.org/abs/2606.06332" target="_blank" rel="noopener">arXiv <span aria-hidden="true">↗</span></a><a href="https://github.com/DMartinezT/bentkus_evalues" target="_blank" rel="noopener">Code <span aria-hidden="true">↗</span></a></div></div>
+        </li>
+        <li class="paper">
+          <div class="paper-year">2026<span class="paper-status">Under review</span></div>
+          <div class="paper-content"><h4>Intrinsic-dimension empirical Bernstein inequalities for bounded self-adjoint operators</h4><p class="paper-authors"><span class="me">Diego Martinez-Taboada</span>, Aaditya Ramdas</p><div class="paper-links"><a href="https://arxiv.org/abs/2605.15278" target="_blank" rel="noopener">arXiv <span aria-hidden="true">↗</span></a><a href="https://github.com/DMartinezT/empirical_bernstein_matrix" target="_blank" rel="noopener">Code <span aria-hidden="true">↗</span></a></div></div>
+        </li>
+        <li class="paper">
+          <div class="paper-year">2026<span class="paper-status">Under review</span></div>
+          <div class="paper-content"><h4>Intrinsic dimension concentration inequalities for self-adjoint operators</h4><p class="paper-authors"><span class="me">Diego Martinez-Taboada</span>, Aaditya Ramdas</p><div class="paper-links"><a href="https://arxiv.org/abs/2602.13465" target="_blank" rel="noopener">arXiv <span aria-hidden="true">↗</span></a></div></div>
+        </li>
+      </ol>
+
+      <div class="paper-heading" id="publications"><h3>Publications</h3><a class="small-label scholar-link" href="https://scholar.google.com/citations?user=9-p1MCsAAAAJ&amp;hl=en" target="_blank" rel="noopener">Google Scholar <span aria-hidden="true">↗</span></a></div>
+      <ol class="paper-list">
+        <li class="paper">
+          <div class="paper-year">2026</div>
+          <div class="paper-content"><h4>Sharp empirical Bernstein bounds for the variance of bounded random variables</h4><p class="paper-authors"><span class="me">Diego Martinez-Taboada</span>, Aaditya Ramdas</p><p class="paper-venue">International Conference on Machine Learning (ICML)</p><div class="paper-links"><a href="https://arxiv.org/abs/2505.01987" target="_blank" rel="noopener">arXiv <span aria-hidden="true">↗</span></a><a href="https://github.com/DMartinezT/emp_bernstein_variance" target="_blank" rel="noopener">Code <span aria-hidden="true">↗</span></a></div></div>
+        </li>
+        <li class="paper">
+          <div class="paper-year">2026</div>
+          <div class="paper-content"><h4>Nonasymptotic heavy-tailed mean estimation in smooth Banach spaces</h4><p class="paper-authors">Justin Whitehouse, Ben Chugg, <span class="me">Diego Martinez-Taboada</span>, Aaditya Ramdas</p><p class="paper-venue">Stochastic Processes and their Applications</p><div class="paper-links"><a href="https://arxiv.org/abs/2411.11271" target="_blank" rel="noopener">arXiv <span aria-hidden="true">↗</span></a><a href="https://www.sciencedirect.com/science/article/abs/pii/S0304414926000918" target="_blank" rel="noopener">Journal <span aria-hidden="true">↗</span></a></div></div>
+        </li>
+        <li class="paper">
+          <div class="paper-year">2026</div>
+          <div class="paper-content"><h4>Vector-valued self-normalized concentration inequalities beyond sub-Gaussianity</h4><p class="paper-authors"><span class="me">Diego Martinez-Taboada</span>, Tomas Gonzalez-Lara, Aaditya Ramdas</p><p class="paper-venue">International Conference on Algorithmic Learning Theory (ALT)</p><div class="paper-links"><a href="https://arxiv.org/abs/2511.03606" target="_blank" rel="noopener">arXiv <span aria-hidden="true">↗</span></a><a href="https://proceedings.mlr.press/v313/martinez-taboada26a.html" target="_blank" rel="noopener">Proceedings <span aria-hidden="true">↗</span></a><a href="https://github.com/DMartinezT/self_normalized" target="_blank" rel="noopener">Code <span aria-hidden="true">↗</span></a></div></div>
+        </li>
+        <li class="paper">
+          <div class="paper-year">2026</div>
+          <div class="paper-content"><h4>Empirical Bernstein in smooth Banach spaces</h4><p class="paper-authors"><span class="me">Diego Martinez-Taboada</span>, Aaditya Ramdas</p><p class="paper-venue">Annals of Applied Probability</p><div class="paper-links"><a href="https://arxiv.org/abs/2409.06060" target="_blank" rel="noopener">arXiv <span aria-hidden="true">↗</span></a><a href="https://projecteuclid.org/journals/annals-of-applied-probability/volume-36/issue-3/Empirical-Bernstein-in-smooth-Banach-spaces/10.1214/25-AAP2277.full" target="_blank" rel="noopener">Journal <span aria-hidden="true">↗</span></a></div></div>
+        </li>
+        <li class="paper">
+          <div class="paper-year">2025</div>
+          <div class="paper-content"><h4>Sequential Kernelized Stein Discrepancy</h4><p class="paper-authors"><span class="me">Diego Martinez-Taboada</span>, Aaditya Ramdas</p><p class="paper-venue">International Conference on Artificial Intelligence and Statistics (AISTATS)</p><div class="paper-links"><a href="https://arxiv.org/abs/2409.17505" target="_blank" rel="noopener">arXiv <span aria-hidden="true">↗</span></a><a href="https://proceedings.mlr.press/v258/martinez-taboada25a.html" target="_blank" rel="noopener">Proceedings <span aria-hidden="true">↗</span></a><a href="https://github.com/DMartinezT/sequential_ksd" target="_blank" rel="noopener">Code <span aria-hidden="true">↗</span></a></div></div>
+        </li>
+        <li class="paper">
+          <div class="paper-year">2024</div>
+          <div class="paper-content"><h4>Counterfactual Density Estimation using Kernel Stein Discrepancies</h4><p class="paper-authors"><span class="me">Diego Martinez-Taboada</span>, Edward H. Kennedy</p><p class="paper-venue">International Conference on Learning Representations (ICLR)</p><div class="paper-links"><a href="https://arxiv.org/abs/2309.16129" target="_blank" rel="noopener">arXiv <span aria-hidden="true">↗</span></a><a href="https://proceedings.iclr.cc/paper_files/paper/2024/file/ff0da832a110c6537e885cdfbac80a94-Paper-Conference.pdf" target="_blank" rel="noopener">Proceedings <span aria-hidden="true">↗</span></a></div></div>
+        </li>
+        <li class="paper">
+          <div class="paper-year">2023</div>
+          <div class="paper-content"><h4>An Efficient Doubly-Robust Test for the Kernel Treatment Effect</h4><p class="paper-authors"><span class="me">Diego Martinez-Taboada</span>, Aaditya Ramdas, Edward H. Kennedy</p><p class="paper-venue">Neural Information Processing Systems (NeurIPS)</p><div class="paper-links"><a href="https://arxiv.org/abs/2304.13237" target="_blank" rel="noopener">arXiv <span aria-hidden="true">↗</span></a><a href="https://proceedings.neurips.cc/paper_files/paper/2023/file/bccdd196d798a51a4961989984a9ed4a-Paper-Conference.pdf" target="_blank" rel="noopener">Proceedings <span aria-hidden="true">↗</span></a></div></div>
+        </li>
+      </ol>
+    </section>
+
+    <section class="section wrap" id="notes" aria-labelledby="notes-title">
+      <div class="section-heading"><span class="section-number" aria-hidden="true">03</span><h2 id="notes-title">Research notes</h2><span class="heading-rule"></span></div>
+      <p class="notes-intro">Notes I've written with help from my generative friends, revisiting topics from the original papers and explaining them differently to help things click.</p>
+      <div class="notes-placeholder"><p class="muted">New notes will appear here.</p><span class="coming-soon">Coming soon</span></div>
+      <!-- Add research-note articles here when ready; see README.md. -->
+    </section>
+
+    <section class="section wrap" id="education" aria-labelledby="education-title">
+      <div class="section-heading"><span class="section-number" aria-hidden="true">04</span><h2 id="education-title">Background</h2><span class="heading-rule"></span></div>
+      <ol class="education-list">
+        <li><span class="education-year">2022 — present</span><div><h3>Carnegie Mellon University</h3><p>PhD in Statistics and Data Science</p></div><span class="education-place">Pittsburgh, USA</span></li>
+        <li><span class="education-year">2021 — 2022</span><div><h3>University of Oxford</h3><p>MSc in Statistical Science</p></div><span class="education-place">Oxford, UK</span></li>
+        <li><span class="education-year">2017 — 2021</span><div><h3>University of Santiago de Compostela</h3><p>BSc in Mathematics</p></div><span class="education-place">Santiago de Compostela, Spain</span></li>
+      </ol>
+    </section>
+
+    <section class="section wrap contact-section" id="contact" aria-labelledby="contact-title">
+      <div class="section-heading"><span class="section-number" aria-hidden="true">05</span><h2 id="contact-title">Get in touch</h2><span class="heading-rule"></span></div>
+      <div class="contact-body"><a class="email-link" href="mailto:diegomar@andrew.cmu.edu">diegomar@andrew.cmu.edu <span aria-hidden="true">↗</span></a><p>Department of Statistics and Data Science<br>Carnegie Mellon University · Pittsburgh, PA</p></div>
+    </section>
   </main>
-</div>
 
-<footer>
-  <div class="container">&copy; 2026 Diego Martinez Taboada. All rights reserved.</div>
-</footer>
-
+  <footer class="site-footer wrap"><p>© 2026 Diego Martinez Taboada</p><a href="#home">Back to top <span aria-hidden="true">↑</span></a></footer>
 </body>
 </html>
