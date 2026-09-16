@@ -19,6 +19,7 @@
   const clamp = value => Math.max(0, Math.min(1, value));
   const ease = value => value * value * value * (value * (value * 6 - 15) + 10);
   const count = graph.nodes.length;
+  const cityVectors = graph.cityVectors || [];
   const symbolData = window.personalSiteSymbolNetwork;
   const symbol = symbolData && symbolData.nodes.length === count && education && symbolSlot ? symbolData : null;
   const mapBounds = {
@@ -44,6 +45,9 @@
   }
   const offsets = graph.nodes.map(() => [random(), random()]);
   const fieldAngles = graph.vectors.map(() => random() * Math.PI * 2 - Math.PI);
+  // Separate, dot-free origins let the city pairs gather without adding neurons
+  // or changing the identities used by the Spain-to-shell transition.
+  const cityHomes = cityVectors.map(() => [.15 + random() * .7, .15 + random() * .7]);
 
   function resize() {
     width = document.documentElement.clientWidth || window.innerWidth;
@@ -211,6 +215,24 @@
       const radius = Math.max(4, 12 * vectorScale);
       context.moveTo(x + Math.cos(angle) * radius, y + Math.sin(angle) * radius);
       context.arc(x, y, radius, angle, angle + vector.spread);
+    });
+    context.stroke();
+
+    // These two unattached vector pairs belong only to the assembled Spain map.
+    // Move them in from the field and fade them out when leaving About me.
+    const cityOpacity = .45 * spainBlend;
+    if (cityOpacity < .002) return;
+    context.strokeStyle = `rgba(155,112,82,${cityOpacity})`;
+    context.beginPath();
+    cityVectors.forEach((city, index) => {
+      const x = mix(cityHomes[index][0] * width, mapX + city.origin[0] * scale, spainBlend);
+      const y = mix(cityHomes[index][1] * height, mapY + city.origin[1] * scale, spainBlend);
+      const cityScale = mix(width < 700 ? .72 : 1, scale, spainBlend);
+      arrow(x, y, city.angle, city.length * cityScale);
+      arrow(x, y, city.angle + city.spread, (city.length - 5) * cityScale);
+      const radius = Math.max(4, 12 * cityScale);
+      context.moveTo(x + Math.cos(city.angle) * radius, y + Math.sin(city.angle) * radius);
+      context.arc(x, y, radius, city.angle, city.angle + city.spread);
     });
     context.stroke();
   }

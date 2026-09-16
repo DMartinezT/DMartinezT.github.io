@@ -52,6 +52,12 @@ nodes and vector pairs form a scattered field. Entering About me assembles the
 map in its reserved space; leaving disperses it again. On mobile, assembly waits
 until that space comes into view below the biography.
 
+Ceuta and Melilla each use one standalone copper vector pair and angle arc,
+without neuron dots or connecting edges. Their schematic positions sit below
+the mainland, east of the Canary inset, with Ceuta west of Melilla. These two
+pairs gather and fade with the map without altering the existing 454 neurons
+or the shell. The generated `cityVectors` data also drives the static fallback.
+
 Regenerate the asset deterministically (Node.js required only for this step):
 
 ```sh
