@@ -5,6 +5,9 @@
   const about = document.getElementById('about');
   const mapSlot = document.querySelector('.about-map');
   const aboutCopy = document.querySelector('.about-copy');
+  const education = document.getElementById('education');
+  const symbolSlot = document.querySelector('.education-symbol');
+  const educationList = document.querySelector('.education-list');
   const cvLink = document.querySelector('.cv-link');
   const header = document.querySelector('.site-header');
   if (!graph || !canvas || !about || !mapSlot) return;
@@ -16,6 +19,8 @@
   const clamp = value => Math.max(0, Math.min(1, value));
   const ease = value => value * value * value * (value * (value * 6 - 15) + 10);
   const count = graph.nodes.length;
+  const symbolData = window.personalSiteSymbolNetwork;
+  const symbol = symbolData && symbolData.nodes.length === count && education && symbolSlot ? symbolData : null;
   const mapBounds = {
     left: Math.min(...graph.nodes.map(([x]) => x)),
     right: Math.max(...graph.nodes.map(([x]) => x)),
@@ -24,8 +29,8 @@
   };
   const positions = Array.from({ length: count }, () => [0, 0]);
   let width = 0, height = 0, ratio = 1;
-  let field = [], fieldEdges = [], mapRect;
-  let blend = 0, target = 0, transition = null;
+  let field = [], fieldEdges = [], mapRect, symbolRect;
+  let spainBlend = 0, symbolBlend = 0, target = 'field', transition = null;
   let frame = 0, needsMeasure = true, needsResize = true;
 
   // One stable shuffled grid gives every geographic node a scattered home.
@@ -73,8 +78,13 @@
   function advance(now) {
     if (!transition) return;
     const elapsed = clamp((now - transition.start) / transition.duration);
-    blend = mix(transition.from, transition.to, ease(elapsed));
-    if (elapsed === 1) { blend = transition.to; transition = null; }
+    const amount = ease(elapsed);
+    spainBlend = mix(transition.from[0], transition.to[0], amount);
+    symbolBlend = mix(transition.from[1], transition.to[1], amount);
+    if (elapsed === 1) {
+      [spainBlend, symbolBlend] = transition.to;
+      transition = null;
+    }
   }
 
   function mapDestination(slot) {
@@ -97,25 +107,31 @@
   function measure(now) {
     if (needsResize) resize();
     const nextRect = mapSlot.getBoundingClientRect();
-    const section = about.getBoundingClientRect();
+    const nextSymbolRect = symbol ? symbolSlot.getBoundingClientRect() : null;
     const headerBottom = header ? header.getBoundingClientRect().bottom : 0;
     const focusLine = headerBottom + (height - headerBottom) * .36;
-    const tolerance = target ? 24 : 0;
     // On narrow screens the map follows the biography. Wait until its reserved
-    // space is visible, so the particles never gather below the viewport.
-    const mapVisible = nextRect.top < height - 40 + tolerance && nextRect.bottom > headerBottom + 24 - tolerance;
-    const inAbout = section.top <= focusLine + tolerance && section.bottom > focusLine - tolerance;
-    const next = Number(mapVisible && inAbout);
+    // space is visible. The same rule applies to the symbol below education.
+    const active = (element, slot, name) => {
+      const section = element.getBoundingClientRect();
+      const tolerance = target === name ? 24 : 0;
+      const visible = slot.top < height - 40 + tolerance && slot.bottom > headerBottom + 24 - tolerance;
+      return visible && section.top <= focusLine + tolerance && section.bottom > focusLine - tolerance;
+    };
+    const next = active(about, nextRect, 'spain') ? 'spain'
+      : symbol && active(education, nextSymbolRect, 'symbol') ? 'symbol' : 'field';
     // Keep the last visible destination when leaving, even after an anchor jump.
     // The particles disperse from where they were, rather than jumping offscreen.
-    if (next || !mapRect) mapRect = mapDestination(nextRect);
+    if (next === 'spain' || !mapRect) mapRect = mapDestination(nextRect);
+    if (symbol && (next === 'symbol' || !symbolRect)) symbolRect = nextSymbolRect;
+    const destination = [Number(next === 'spain'), Number(next === 'symbol')];
     if (motion.matches) {
       target = next;
-      blend = next;
+      [spainBlend, symbolBlend] = destination;
       transition = null;
     } else if (next !== target) {
       target = next;
-      transition = { from: blend, to: next, start: now, duration: 1500 };
+      transition = { from: [spainBlend, symbolBlend], to: destination, start: now, duration: 1500 };
     }
     needsMeasure = false;
   }
@@ -148,16 +164,23 @@
 
   function draw() {
     context.clearRect(0, 0, width, height);
+    const blend = spainBlend + symbolBlend;
+    const fieldBlend = 1 - blend;
     const scale = Math.min(mapRect.width / graph.width, mapRect.height / graph.height);
     const mapX = mapRect.left + (mapRect.width - graph.width * scale) / 2;
     const mapY = mapRect.top + (mapRect.height - graph.height * scale) / 2;
+    const symbolScale = symbol ? Math.min(symbolRect.width / symbol.width, symbolRect.height / symbol.height) : 1;
+    const symbolX = symbol ? symbolRect.left + (symbolRect.width - symbol.width * symbolScale) / 2 : 0;
+    const symbolY = symbol ? symbolRect.top + (symbolRect.height - symbol.height * symbolScale) / 2 : 0;
     graph.nodes.forEach(([x, y], index) => {
-      positions[index][0] = mix(field[index][0], mapX + x * scale, blend);
-      positions[index][1] = mix(field[index][1], mapY + y * scale, blend);
+      const [cx, cy] = symbol ? symbol.nodes[index] : [0, 0];
+      positions[index][0] = field[index][0] * fieldBlend + (mapX + x * scale) * spainBlend + (symbolX + cx * symbolScale) * symbolBlend;
+      positions[index][1] = field[index][1] * fieldBlend + (mapY + y * scale) * spainBlend + (symbolY + cy * symbolScale) * symbolBlend;
     });
 
     connections(fieldEdges, .065 * (1 - blend), Math.max(65, Math.sqrt(width * height / count) * 2.2));
-    connections(graph.connections, .2 * blend, Math.max(60, 90 * scale));
+    connections(graph.connections, .2 * spainBlend, Math.max(60, 90 * scale));
+    if (symbol) connections(symbol.connections, .28 * symbolBlend, Math.max(60, 90 * symbolScale));
     context.fillStyle = `rgba(100,122,139,${mix(.12, .38, blend)})`;
     context.beginPath();
     positions.forEach(([x, y], index) => {
@@ -169,14 +192,20 @@
 
     // The angle between each vector pair is preserved while its shared origin
     // moves and the pair rotates into the geographic network.
-    context.strokeStyle = `rgba(155,112,82,${mix(.15, .45, blend)})`;
+    // Fade the angle pairs away for the shell's clean contours.
+    // Spain and the scattered background keep their existing motifs.
+    const vectorOpacity = mix(.15, .45, blend) * (1 - symbolBlend);
+    if (vectorOpacity < .002) return;
+    context.strokeStyle = `rgba(155,112,82,${vectorOpacity})`;
     context.lineWidth = 1;
     context.beginPath();
     graph.vectors.forEach((vector, index) => {
       const [x, y] = positions[vector.node];
       const turn = Math.atan2(Math.sin(vector.angle - fieldAngles[index]), Math.cos(vector.angle - fieldAngles[index]));
-      const angle = fieldAngles[index] + turn * blend;
-      const vectorScale = mix(width < 700 ? .72 : 1, scale, blend);
+      const symbolAngle = symbol ? symbol.vectorAngles[index] : vector.angle;
+      const symbolTurn = Math.atan2(Math.sin(symbolAngle - fieldAngles[index]), Math.cos(symbolAngle - fieldAngles[index]));
+      const angle = fieldAngles[index] + turn * spainBlend + symbolTurn * symbolBlend;
+      const vectorScale = (width < 700 ? .72 : 1) * fieldBlend + scale * spainBlend + symbolScale * .65 * symbolBlend;
       arrow(x, y, angle, vector.length * vectorScale);
       arrow(x, y, angle + vector.spread, (vector.length - 5) * vectorScale);
       const radius = Math.max(4, 12 * vectorScale);
@@ -193,6 +222,7 @@
     if (needsMeasure) measure(now);
     draw();
     document.documentElement.classList.add('has-math-background');
+    if (symbol) document.documentElement.classList.add('has-symbol-background');
     if (transition) schedule();
   }
 
@@ -212,7 +242,7 @@
   // Covers font loading, text resizing and the expanding mobile navigation.
   if ('ResizeObserver' in window) {
     const observer = new ResizeObserver(refresh);
-    [about, mapSlot, aboutCopy, header, cvLink].filter(Boolean).forEach(element => observer.observe(element));
+    [about, mapSlot, aboutCopy, education, symbolSlot, educationList, header, cvLink].filter(Boolean).forEach(element => observer.observe(element));
   }
   if (document.fonts) document.fonts.ready.then(refresh);
   schedule();
