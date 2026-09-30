@@ -1,0 +1,508 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#000000">
+  <script src="../../theme.js"></script>
+  <meta name="description" content="From average gradient size to the full Jacobian spectrum: Gaussian and orthogonal weights, nonlinear gates, residual products, and the directions that a network preserves or loses.">
+  <title>Dynamical isometry: why variance preservation is insufficient</title>
+  <link rel="stylesheet" href="../../styles.css">
+  <script src="../../assets/math-network.js" defer></script>
+  <script src="../../background.js" defer></script>
+  <style>
+    :root {
+      --bg: var(--background);
+      --ink: var(--text);
+      --rule: var(--line);
+      --link: var(--blue);
+      --box-bg: var(--surface);
+      --box-border: var(--line);
+      --code-bg: var(--surface);
+      --max: 790px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: 0; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Georgia, "Times New Roman", Times, serif;
+      font-size: 18px;
+      line-height: 1.68;
+      -webkit-font-smoothing: antialiased;
+    }
+    main, header, footer {
+      width: min(var(--max), calc(100% - 38px));
+      margin-left: auto;
+      margin-right: auto;
+    }
+    header { padding: 42px 0 24px; border-bottom: 1px solid var(--rule); }
+    .site-link {
+      display: inline-block;
+      margin-bottom: 30px;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 0.82rem;
+      letter-spacing: .02em;
+    }
+    h1, h2, h3 {
+      font-family: Georgia, "Times New Roman", Times, serif;
+      line-height: 1.22;
+      font-weight: 600;
+      scroll-margin-top: 18px;
+    }
+    h1 { font-size: clamp(2.15rem, 7vw, 3.45rem); margin: 0 0 12px; letter-spacing: -0.025em; }
+    h2 { font-size: 1.62rem; margin: 2.7em 0 .65em; }
+    h3 { font-size: 1.22rem; margin: 2em 0 .45em; }
+    p { margin: 1em 0; }
+    .subtitle { font-size: 1.18rem; color: var(--muted); max-width: 690px; margin: 0 0 12px; }
+    .meta {
+      color: var(--muted);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: .84rem;
+    }
+    main { padding: 28px 0 74px; }
+    a { color: var(--link); text-decoration: underline; text-underline-offset: 0.16em; }
+    a:hover { text-decoration-thickness: 2px; }
+    .toc {
+      border-bottom: 1px solid var(--rule);
+      padding: 0 0 24px;
+      margin-bottom: 34px;
+    }
+    .toc strong {
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: .86rem;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+    .toc ol { margin: 10px 0 0 1.25em; padding: 0; }
+    .toc li { margin: 2px 0; }
+    .toc a { text-decoration: none; }
+    .lead { font-size: 1.08em; }
+    .keyidea, .remark {
+      margin: 1.55em 0;
+      padding: 14px 18px;
+      border-left: 3px solid var(--box-border);
+      background: var(--box-bg);
+    }
+    .keyidea strong, .remark strong {
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: .86rem;
+      letter-spacing: .035em;
+      text-transform: uppercase;
+    }
+    .keyidea p:first-child, .remark p:first-child { margin-top: 0; }
+    .keyidea p:last-child, .remark p:last-child { margin-bottom: 0; }
+    .equation-summary {
+      margin: 1.8em 0;
+      padding: 17px 20px;
+      border: 1px solid var(--box-border);
+      background: var(--box-bg);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1.35em 0 1.7em;
+      font-size: .96em;
+    }
+    th, td { border-bottom: 1px solid var(--rule); padding: 9px 10px; text-align: left; vertical-align: top; }
+    th { font-weight: 600; }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: .88em;
+      background: var(--code-bg);
+      padding: .08em .28em;
+      border-radius: 3px;
+    }
+    mjx-container[display="true"] { overflow-x: auto; overflow-y: hidden; padding: .25em 0; max-width: 100%; }
+    .table-scroll { overflow-x: auto; margin: 1.35em 0 1.7em; }
+    .table-scroll table { margin: 0; min-width: 540px; }
+    caption { text-align: left; color: var(--muted); font-size: .9em; margin-bottom: .6em; }
+    a:focus-visible, button:focus-visible, .table-scroll:focus-visible { outline: 2px solid var(--link); outline-offset: 4px; }
+    @media print {
+      mjx-container[display="true"], .table-scroll { overflow: visible; }
+      .table-scroll table { min-width: 0; }
+    }
+    .refs { font-size: .94em; }
+    .refs li { margin-bottom: .75em; }
+    .small { color: var(--muted); font-size: .93em; }
+    footer {
+      border-top: 1px solid var(--rule);
+      padding: 22px 0 40px;
+      color: var(--muted);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: .82rem;
+    }
+    @media (max-width: 620px) {
+      body { font-size: 17px; }
+      header { padding-top: 28px; }
+      .site-link { margin-bottom: 22px; }
+      th, td { padding-left: 6px; padding-right: 6px; }
+    }
+    @media print {
+      :root { --bg: #fff; --ink: #000; --muted: #444; --rule: #bbb; --link: #000; --box-bg: #fff; --box-border: #888; }
+      body { font-size: 11.5pt; }
+      .site-link, .toc, .math-background { display: none; }
+      header { padding-top: 0; }
+      main, header, footer { width: 100%; }
+      a { text-decoration: none; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+    }
+
+    pre { overflow-x: auto; padding: 16px; border: 1px solid var(--rule); background: var(--code-bg); font-size: .82em; line-height: 1.55; }
+    pre code { padding: 0; background: none; font-size: 1em; }
+    .related { font-size: .93em; color: var(--muted); }
+    .table-scroll:focus-visible { outline: 2px solid var(--link); outline-offset: 4px; }
+    @media print { pre { white-space: pre-wrap; overflow-wrap: anywhere; } }
+  </style>
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(','\\)']],
+        displayMath: [['\\[','\\]']],
+        macros: {
+          mup: '\\mu\\mathrm{P}',
+          E: '\\mathbb{E}'
+        }
+      },
+      options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+    };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+</head>
+<body>
+<div class="math-background" aria-hidden="true"><canvas id="math-background"></canvas></div>
+<header>
+  <div class="note-toolbar">
+    <a class="site-link" href="../../index.html#notes">← Research notes</a>
+    <div class="theme-controls" role="group" aria-label="Appearance" hidden>
+      <button class="theme-toggle" data-theme-toggle type="button" aria-label="Switch to night mode"><span class="theme-icon" data-theme-icon aria-hidden="true">☾</span><span data-theme-label>Night</span></button>
+      <button class="theme-auto" data-theme-auto type="button" aria-pressed="true" aria-label="Use local time for day and night" title="Follow local time: day from 7 a.m. to 7 p.m.">Auto</button>
+    </div>
+  </div>
+  <h1>Dynamical isometry: why variance preservation is insufficient</h1>
+  <p class="subtitle">From average gradient size to the full Jacobian spectrum: Gaussian and orthogonal weights, nonlinear gates, residual products, and the directions that a network preserves or loses.</p>
+  <div class="meta">Research notes · 24 September 2026</div>
+</header>
+<main>
+  <nav class="toc" aria-label="Table of contents">
+    <strong>Contents</strong>
+    <ol>
+      <li><a href="#jacobian">The Jacobian tells us which perturbations survive</a></li>
+      <li><a href="#average">What average gradient preservation actually controls</a></li>
+      <li><a href="#counterexample">A critical matrix can erase half the space</a></li>
+      <li><a href="#definition">A precise local version of dynamical isometry</a></li>
+      <li><a href="#linear-orthogonal">Deep linear networks give an exact benchmark</a></li>
+      <li><a href="#one-gaussian">One Gaussian layer is already spectrally broad</a></li>
+      <li><a href="#gaussian-products">Gaussian products preserve the first moment and spread the second</a></li>
+      <li><a href="#numerical-moments">A table that variance propagation cannot distinguish</a></li>
+      <li><a href="#nonlinear">A nonlinearity inserts an input-dependent gate</a></li>
+      <li><a href="#relu">Why orthogonal ReLU weights still lose directions</a></li>
+      <li><a href="#smooth-activations">Smooth activations can approach the linear benchmark</a></li>
+      <li><a href="#random-matrix-method">What the random-matrix machinery adds</a></li>
+      <li><a href="#residual">Residual connections replace gates by perturbations of identity</a></li>
+      <li><a href="#residual-example">A smooth depth limit need not be isometric</a></li>
+      <li><a href="#different-jacobians">Activation conditioning and parameter learning are different</a></li>
+      <li><a href="#experiment">A small experiment with matching entry variances</a></li>
+      <li><a href="#diagnostics">What to measure in a real network</a></li>
+      <li><a href="#takeaway">Five equations to remember</a></li>
+    </ol>
+  </nav>
+  <p class="lead">A network can preserve the average size of a gradient while almost erasing some directions and greatly amplifying others. Dynamical isometry asks for a stronger form of propagation: the relevant singular values of the input-output Jacobian should remain close to one. This note starts with matrices whose behavior is visible by inspection, then explains why random weights, nonlinear gates, and residual products behave differently.</p>
+  <p class="small">This expands <a href="deep-information-propagation.html#isometry">§7 of the DIP note</a>. Unless stated otherwise, layers have the same width \(n\), the Jacobian is with respect to activations, and the analysis concerns initialization. A parameter Jacobian and a weight-update matrix are different objects, as discussed in the <a href="ntk-and-lazy-training.html">NTK</a> and <a href="spectral-scaling-and-optimizer-geometry.html">spectral-scaling</a> notes.</p>
+
+  <section id="jacobian">
+    <h2>1. The Jacobian tells us which perturbations survive</h2>
+    <p>For a map \(h_L=F(h_0)\), let</p>
+    \[
+      J=\frac{\partial h_L}{\partial h_0}.
+    \]
+    <p>A small forward perturbation obeys \(\delta h_L=J\,\delta h_0\). A backward loss gradient obeys \(g_0=J^\top g_L\). Take a singular-value decomposition</p>
+    \[
+      J=U\,\operatorname{diag}(s_1,\ldots,s_n)V^\top.
+    \]
+    <p>The input direction \(v_i\) becomes \(s_i u_i\). The output-gradient direction \(u_i\) becomes \(s_i v_i\) when propagated backward. The same singular values govern both kinds of sensitivity.</p>
+    <p>A value near zero means a local direction is almost lost. A large value means a small perturbation can have a large effect. If every \(s_i=1\), the map preserves the Euclidean length of every infinitesimal perturbation, although it may rotate those perturbations.</p>
+    <div class="keyidea"><strong>Local property.</strong> A Jacobian describes sensitivity around one input and one parameter state. It does not by itself imply that the network preserves all finite distances, is globally invertible, or generalizes well.</div>
+  </section>
+
+  <section id="average">
+    <h2>2. What average gradient preservation actually controls</h2>
+    <p>Let \(v\) be a uniformly random unit vector, independent of a fixed square Jacobian \(J\). Since \(\mathbb E[vv^\top]=I/n\),</p>
+    \[
+      \mathbb E_v\|Jv\|^2
+      =\frac1n\operatorname{tr}(J^\top J)
+      =\frac1n\sum_i s_i^2.
+    \]
+    <p>Define \(m_1=n^{-1}\sum_i s_i^2\). Setting \(m_1=1\) preserves squared length averaged over isotropic test directions. It says nothing about how unevenly that sensitivity is distributed.</p>
+    <p>The backward statement is identical for an independent isotropic output gradient. An actual loss gradient need not be isotropic or independent of the weights. This is another reason to distinguish a diagnostic average from a guarantee about a particular task.</p>
+    <p>The mean-field criticality factor \(\chi=\sigma_w^2\mathbb E[\phi'(Z)^2]\) is designed to control this sort of average under the relevant initialization assumptions. It is one spectral moment, not the entire spectrum.</p>
+  </section>
+
+  <section id="counterexample">
+    <h2>3. A critical matrix can erase half the space</h2>
+    <p>For even \(n\), compare</p>
+    \[
+      J_{\mathrm{good}}=I,\qquad
+      J_{\mathrm{bad}}=\operatorname{diag}
+      (\underbrace{\sqrt2,\ldots,\sqrt2}_{n/2},
+      \underbrace{0,\ldots,0}_{n/2}).
+    \]
+    <p>Both have \(m_1=1\). The second erases every perturbation in half the coordinate directions and expands the other half. Average gradient preservation is fully compatible with exact information loss.</p>
+    <p>A full-rank version is</p>
+    \[
+      J_\varepsilon=
+      \operatorname{diag}(\sqrt{2-\varepsilon^2},\varepsilon),
+      \qquad 0&lt;\varepsilon&lt;1.
+    \]
+    <p>Again \(m_1=1\), but its condition number is \(\sqrt{2-\varepsilon^2}/\varepsilon\), which can be arbitrarily large. Avoiding exact zeros is therefore not enough.</p>
+    <p>This example is useful whenever a variance calculation seems to settle a trainability question: preserving the sum of squared sensitivities does not ensure that the task-relevant directions retain useful sensitivity.</p>
+  </section>
+
+  <section id="definition">
+    <h2>4. A precise local version of dynamical isometry</h2>
+    <p>A strong quantitative criterion is</p>
+    \[
+      \|J^\top J-I\|_{\mathrm{op}}\leq\delta,\qquad 0\leq\delta&lt;1.
+    \]
+    <p>Equivalently, for every input perturbation \(v\),</p>
+    \[
+      (1-\delta)\|v\|^2\leq\|Jv\|^2
+      \leq(1+\delta)\|v\|^2.
+    \]
+    <p>Every singular value then lies between \(\sqrt{1-\delta}\) and \(\sqrt{1+\delta}\). The worst-case condition number is bounded by \(\sqrt{(1+\delta)/(1-\delta)}\).</p>
+    <p>Random-matrix papers also discuss concentration of the <em>empirical distribution</em> of singular values near one. That is related but weaker than a uniform operator-norm statement: a small fraction of outliers can escape an empirical-distribution limit.</p>
+    <p><a href="https://arxiv.org/abs/1711.04735">Pennington, Schoenholz, and Ganguli (2017)</a> study the full initialization spectrum in nonlinear networks. The practical lesson is to inspect spectral spread and extremes alongside the mean.</p>
+  </section>
+
+  <section id="linear-orthogonal">
+    <h2>5. Deep linear networks give an exact benchmark</h2>
+    <p>Take \(h_\ell=W_\ell h_{\ell-1}\), with square matrices. Then</p>
+    \[
+      J=W_LW_{L-1}\cdots W_1.
+    \]
+    <p>If each \(W_\ell=O_\ell\) is orthogonal, the product is orthogonal:</p>
+    \[
+      J^\top J
+      =O_1^\top\cdots O_L^\top O_L\cdots O_1=I.
+    \]
+    <p>This is exact at every width and every depth. Independent Haar-distributed orthogonal matrices have entry second moment \(1/n\), matching the variance of an iid Gaussian initializer with entries \(\mathcal N(0,1/n)\). Matching entry variance therefore does not match the Jacobian spectrum.</p>
+    <p>If \(W_\ell=\sigma_\ell O_\ell\), all singular values of \(J\) equal \(\prod_\ell|\sigma_\ell|\). The overall gain still needs control; orthogonality controls anisotropy, not an arbitrary scalar multiplier.</p>
+    <p>Deep linear models are linear in inputs but nonlinear in their layer factors. Their usefulness for studying initialization and learning dynamics is developed by <a href="https://arxiv.org/abs/1312.6120">Saxe, McClelland, and Ganguli</a>.</p>
+  </section>
+
+  <section id="one-gaussian">
+    <h2>6. One Gaussian layer is already spectrally broad</h2>
+    <p>Let \(W\in\mathbb R^{n\times n}\) have independent entries with variance \(1/n\). For a fixed input \(x\),</p>
+    \[
+      \mathbb E_W\|Wx\|^2=\|x\|^2.
+    \]
+    <p>At large \(n\), the squared singular values have the square Marchenko–Pastur density</p>
+    \[
+      p(\lambda)=\frac1{2\pi}\sqrt{\frac{4-\lambda}{\lambda}},
+      \qquad 0&lt;\lambda&lt;4.
+    \]
+    <p>This distribution has mean one and variance one. Its support reaches zero, and its upper edge is four. The largest singular value approaches two, rather than one, while the smallest approaches zero.</p>
+    <p>A finite Gaussian matrix is full rank almost surely. The limiting support touching zero means increasingly weak directions, not a positive fraction of exactly zero singular values. This differs from the exact rank loss caused by a ReLU gate.</p>
+    <p>The random-matrix calculation and its deep-product extension are used in <a href="https://arxiv.org/html/1711.04735v1#S2.SS3">Pennington et al.'s linear-network analysis</a>. The contrast with an orthogonal matrix is already visible after one layer.</p>
+  </section>
+
+  <section id="gaussian-products">
+    <h2>7. Gaussian products preserve the first moment and spread the second</h2>
+    <p>There is a short moment calculation that exposes the depth problem. Let \(A=J_\ell J_\ell^\top\), and append an independent Gaussian layer \(W\) with entry variance \(1/n\). The new squared-Jacobian matrix is \(B=WAW^\top\).</p>
+    <p>Conditioning on \(A\), the Gaussian second- and fourth-moment identities give</p>
+    \[
+      \mathbb E_W\!\left[\frac{\operatorname{tr}B}{n}\right]
+      =\frac{\operatorname{tr}A}{n},
+    \]
+    \[
+      \mathbb E_W\!\left[\frac{\operatorname{tr}B^2}{n}\right]
+      =\left(1+\frac1n\right)\frac{\operatorname{tr}A^2}{n}
+      +\left(\frac{\operatorname{tr}A}{n}\right)^2.
+    \]
+    <p>One way to see the second formula is to separate equal and unequal rows of \(W\). For distinct rows \(w_i,w_j\), \(\mathbb E(w_i^\top Aw_j)^2=\operatorname{tr}(A^2)/n^2\); for one row, \(\mathbb E(w_i^\top Aw_i)^2=[(\operatorname{tr}A)^2+2\operatorname{tr}(A^2)]/n^2\).</p>
+    <p>Taking width to infinity at fixed depth, the normalized moments concentrate. Starting from \(J_0=I\), this gives</p>
+    \[
+      m_1(L)=1,\qquad m_2(L)=L+1,\qquad
+      \boxed{\operatorname{Var}(s^2)=m_2-m_1^2=L.}
+    \]
+    <p>Every layer is variance preserving, but the squared singular values become more dispersed with depth. The first moment misses the accumulated anisotropy.</p>
+  </section>
+
+  <section id="numerical-moments">
+    <h2>8. A table that variance propagation cannot distinguish</h2>
+    <div class="table-scroll" role="region" aria-label="Deep linear Jacobian moments" tabindex="0"><table>
+      <caption>Large-width moments for independent square Gaussian layers; exact values for orthogonal layers.</caption>
+      <thead><tr><th scope="col">Depth \(L\)</th><th scope="col">Gaussian \(m_1\)</th><th scope="col">Gaussian \(m_2\)</th><th scope="col">Gaussian \(\operatorname{Var}(s^2)\)</th><th scope="col">Orthogonal \(\operatorname{Var}(s^2)\)</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>1</td><td>2</td><td>1</td><td>0</td></tr>
+        <tr><td>4</td><td>1</td><td>5</td><td>4</td><td>0</td></tr>
+        <tr><td>16</td><td>1</td><td>17</td><td>16</td><td>0</td></tr>
+        <tr><td>64</td><td>1</td><td>65</td><td>64</td><td>0</td></tr>
+      </tbody>
+    </table></div>
+    <p>These are evaluations of the moment formulas, not simulation measurements. A test recording only average activation or gradient squared norm would see the same mean in both ensembles. A singular-value plot would reveal their very different geometry.</p>
+    <p>The variance column alone does not reconstruct the full distribution or its minimum. It does, however, decisively rule out concentration of all squared singular values near one in this Gaussian product limit.</p>
+  </section>
+
+  <section id="nonlinear">
+    <h2>9. A nonlinearity inserts an input-dependent gate</h2>
+    <p>For \(z_\ell=W_\ell h_{\ell-1}+b_\ell\) and \(h_\ell=\phi(z_\ell)\), define</p>
+    \[
+      D_\ell=\operatorname{diag}(\phi'(z_{\ell,1}),\ldots,\phi'(z_{\ell,n})).
+    \]
+    <p>The Jacobian becomes</p>
+    \[
+      \boxed{J=D_LW_L\cdots D_1W_1.}
+    \]
+    <p>Orthogonal weights can preserve length before each gate, but the diagonal gate stretches different coordinates by different amounts. If those diagonal entries are all close to the same positive number, a scalar gain can approximately compensate. If many entries are zero or strongly unequal, it cannot.</p>
+    <p>At a stationary preactivation distribution, the usual mean-field gain is</p>
+    \[
+      \chi=\sigma_w^2\mathbb E[\phi'(Z)^2].
+    \]
+    <p>The condition \(\chi=1\) controls an average squared gain per layer. It does not determine the distribution of \(\phi'(Z)^2\), or remove the spectral spread inherited from the weight matrices.</p>
+  </section>
+
+  <section id="relu">
+    <h2>10. Why orthogonal ReLU weights still lose directions</h2>
+    <p>For a centered continuous symmetric preactivation distribution, a ReLU derivative is zero on about half the coordinates and one on the rest. With \(W=\sqrt2\,O\),</p>
+    \[
+      A=DW,\qquad AA^\top=2D.
+    \]
+    <p>A single square layer therefore has squared singular values approximately half zero and half two. Their mean is one, but the layer is not isometric. This reproduces the counterexample in §3 inside an actual nonlinear layer.</p>
+    <p>For a product, rank cannot exceed the rank of any factor. One such gate already prevents full-space dynamical isometry in this equal-width architecture.</p>
+    <div class="remark"><strong>Do not multiply active fractions into a rank formula.</strong> A depth-\(L\) ReLU stack does not generally retain only a fraction \(2^{-L}\) of dimensions. Dense matrices mix the surviving subspaces between gates. The rank bound from a gate is valid; a product-of-fractions argument is not.</div>
+    <p>This conclusion concerns square feed-forward Jacobians on the full activation space. A wide layer mapping a lower-dimensional input, a residual identity path, or a restriction to a data manifold can change the relevant rank and isometry question.</p>
+  </section>
+
+  <section id="smooth-activations">
+    <h2>11. Smooth activations can approach the linear benchmark</h2>
+    <p>For tanh,</p>
+    \[
+      \phi'(z)=\operatorname{sech}^2z=1-z^2+O(z^4).
+    \]
+    <p>If preactivations remain near zero, most derivative gates are close to one. Orthogonal weights then remove one source of spectral spread, and the gates introduce only a small deviation from the linear orthogonal case.</p>
+    <p>But “near zero” must be maintained by the forward variance recursion. At large depth, small per-layer deviations can still accumulate. Choosing a gain to set \(\chi=1\) fixes the mean squared gain, while the variation in the derivative gates determines how close the full spectrum can remain to one.</p>
+    <p>This explains why the activation and weight ensemble have to be designed together. The nonlinear isometry analysis of <a href="https://arxiv.org/abs/1711.04735">Pennington et al.</a> makes this dependence explicit.</p>
+    <p>There is also a tradeoff to interpret carefully: operating near a linear part of the activation can help propagation at initialization. It does not imply that the model must remain a linear function of inputs throughout training, nor prove that the most nearly isometric initialization gives the best final predictor.</p>
+  </section>
+
+  <section id="random-matrix-method">
+    <h2>12. What the random-matrix machinery adds</h2>
+    <p>Moment calculations like §7 become harder when gates and weights are multiplied repeatedly. Random-matrix methods organize the spectrum of these products instead of tracking every entry.</p>
+    <p>A useful mental model is that covariance recursion tracks how large a typical signal becomes, while spectral analysis tracks the distribution of gains over all local directions. Free-probability transforms can turn suitable large-matrix product calculations into algebraic relations between spectral distributions.</p>
+    <p>The assumptions are essential. Independence of entries is not the same as the asymptotic freeness used by the spectral calculation. In a nonlinear network, \(D_\ell\) depends on preactivations produced using \(W_\ell\), and trained weights acquire further correlations.</p>
+    <p>The exact orthogonal linear argument and the conditional Gaussian moment calculation in this note do not need a heuristic independence assumption between nonlinear gates and weights. Extending them to nonlinear architectures requires the additional arguments in the source theory; extending initialization results to trained networks requires still more.</p>
+  </section>
+
+  <section id="residual">
+    <h2>13. Residual connections replace gates by perturbations of identity</h2>
+    <p>For \(h_{\ell+1}=h_\ell+a_\ell F_\ell(h_\ell)\), let \(B_\ell=DF_\ell(h_\ell)\). Then</p>
+    \[
+      J=\prod_{\ell=L-1}^{0}(I+a_\ell B_\ell).
+    \]
+    <p>A ReLU inside \(F_\ell\) can kill branch sensitivities without directly killing the identity route. This is a major structural change from \(D_\ell W_\ell\).</p>
+    <p>If \(|a_\ell|\|B_\ell\|_{\mathrm{op}}\leq\varepsilon_\ell&lt;1\), elementary singular-value bounds give</p>
+    \[
+      1-\varepsilon_\ell\leq s_i(I+a_\ell B_\ell)\leq1+\varepsilon_\ell,
+    \]
+    \[
+      \prod_\ell(1-\varepsilon_\ell)
+      \leq s_{\min}(J)\leq s_{\max}(J)
+      \leq\prod_\ell(1+\varepsilon_\ell).
+    \]
+    <p>A bounded sum \(\sum_\ell\varepsilon_\ell\), with individual terms bounded away from one, gives coarse control of both extremes. To force this worst-case bound close to one, that sum must be small.</p>
+    <p>Random centered branches can exhibit cancellations that make a sum of squared multipliers relevant instead. That stochastic calculation is more favorable than the worst-case bound, but requires assumptions on the matrices and their dependencies. The two arguments should not be interchanged.</p>
+  </section>
+
+  <section id="residual-example">
+    <h2>14. A smooth depth limit need not be isometric</h2>
+    <p>Take the deterministic two-dimensional branch Jacobian \(B=\operatorname{diag}(b,-b)\), with the same \(b&gt;0\) at every depth, and use \(a=1/L\). Then</p>
+    \[
+      J_L=(I+B/L)^L
+      \longrightarrow e^B=\operatorname{diag}(e^b,e^{-b}).
+    \]
+    <p>The depth limit exists and both singular values remain finite and nonzero. Yet the condition number tends to \(e^{2b}\). For \(b=1\), the gains are approximately \(2.72\) and \(0.37\), giving a condition number of about \(7.39\).</p>
+    <p>This is a stable, smooth evolution through depth with appreciable distortion. Bounded propagation and dynamical isometry are distinct requirements.</p>
+    <p>For a continuous flow \(J'(t)=B(t)J(t)\),</p>
+    \[
+      \frac{d}{dt}(J^\top J)=J^\top(B^\top+B)J.
+    \]
+    <p>If \(B(t)\) is skew-symmetric, the metric \(J^\top J\) remains constant. Its symmetric part is what stretches and contracts directions. A \(1/L\) residual multiplier alone imposes no such skew-symmetry constraint.</p>
+  </section>
+
+  <section id="different-jacobians">
+    <h2>15. Activation conditioning and parameter learning are different</h2>
+    <p>There are at least three matrices that might be called “the Jacobian” in these notes:</p>
+    <div class="table-scroll" role="region" aria-label="Different Jacobians and their roles" tabindex="0"><table>
+      <thead><tr><th scope="col">Matrix</th><th scope="col">Perturbation being measured</th><th scope="col">Relevant question</th></tr></thead>
+      <tbody>
+        <tr><td>\(D_{h_0}h_L\)</td><td>Input or hidden-state perturbations</td><td>Can signals and sensitivities propagate?</td></tr>
+        <tr><td>\(D_\theta\mathbf f\)</td><td>Parameter perturbations on a dataset</td><td>Which prediction changes can training produce?</td></tr>
+        <tr><td>\(D_{\theta_\ell}F_\ell\)</td><td>One branch's parameter perturbations</td><td>How does that branch respond to learning?</td></tr>
+      </tbody>
+    </table></div>
+    <p>The NTK uses the second matrix. It need not have a good spectrum merely because the first is isometric. It also depends on parameter coordinates and learning-rate multipliers.</p>
+    <p>Likewise, <a href="tensor-programs-iv-v.html">μP</a> keeps feature updates at the right width scale, while <a href="completep.html">CompleteP</a> preserves certain nonlinear interactions inside deep blocks. Neither criterion alone forces all input-output Jacobian singular values to approach one.</p>
+    <p>For normalized layers, some directions are redundant and deliberately projected out. The <a href="normalization-and-residual-parametrization.html#directions">LayerNorm calculation</a> shows why it can be more meaningful to inspect singular values on the transmitted tangent subspace.</p>
+  </section>
+
+  <section id="experiment">
+    <h2>16. A small experiment with matching entry variances</h2>
+    <ol>
+      <li>Choose width \(n=128\) and depths \(1,4,16,64\). Form deep linear products using iid Gaussian weights with variance \(1/n\), and separately using independent Haar orthogonal weights.</li>
+      <li>Compute singular values of the actual product. Record \(m_1\), \(m_2\), singular-value quantiles, the minimum, and the maximum. Repeat over seeds.</li>
+      <li>Compare the Gaussian moment trend with §8 and the orthogonal singular values with one. Finite-width deviations from the limiting Gaussian table are expected.</li>
+      <li>Add ReLU after each layer, use the corresponding \(\sqrt2\) weight gain, and compute the input-dependent Jacobian at a fixed nonzero input. Inspect the zero singular values as well as the nonzero ones.</li>
+    </ol>
+    <p>Use float64 for this small diagnostic. Long products can become numerically ill-conditioned; underflowed singular values are not automatically exact theoretical zeros. For much deeper products, use methods designed for stable spectral or Lyapunov-exponent estimation.</p>
+    <p>This is a reproducible experiment specification. The table in §8 is theoretical, and no empirical histogram is being claimed here. The elementary counterexample and the orthogonal-product identity can be checked without random sampling at all.</p>
+  </section>
+
+  <section id="diagnostics">
+    <h2>17. What to measure in a real network</h2>
+    <p>A useful diagnostic records more than a single norm:</p>
+    <ul>
+      <li>Average squared gain, to compare with variance propagation.</li>
+      <li>Spectral spread and extremes, to detect directions that the average hides.</li>
+      <li>Exact and numerical rank, interpreted relative to bottlenecks and normalization symmetries.</li>
+      <li>Dependence on input and training time, because nonlinear gates and learned weights change the Jacobian.</li>
+      <li>Alignment with task-relevant gradients or perturbations, because an isotropic average may not represent the task.</li>
+    </ul>
+    <p>For a large model, Jacobian-vector and vector-Jacobian products can estimate gains or leading singular values without constructing the full Jacobian. A few random probes estimate an average; they do not certify the smallest singular value.</p>
+    <p>Good conditioning is one ingredient in useful learning. It does not supply a target-aligned representation, a suitable optimizer, or a guarantee that the property persists through training. Its value here is to expose failures invisible to the scalar initialization and update-scale calculations.</p>
+  </section>
+
+  <section id="takeaway">
+    <h2>18. Five equations to remember</h2>
+    <div class="equation-summary">
+      \[\boxed{J=U\operatorname{diag}(s_i)V^\top}\]
+      \[\boxed{\mathbb E_v\|Jv\|^2=\frac1n\sum_i s_i^2\quad\text{for isotropic unit }v}\]
+      \[\boxed{\|J^\top J-I\|_{\mathrm{op}}\leq\delta\quad\Rightarrow\quad 1-\delta\leq s_i^2\leq1+\delta}\]
+      \[\boxed{m_1=1,\quad m_2=L+1\quad\text{for the large-width Gaussian linear product}}\]
+      \[\boxed{J_{\mathrm{plain}}=\prod_\ell D_\ell W_\ell,\qquad J_{\mathrm{res}}=\prod_\ell(I+a_\ell B_\ell)}\]
+    </div>
+    <p>Variance preservation controls the mean squared gain. Isometry controls how that gain is distributed over directions. Orthogonality solves the linear problem exactly; nonlinear gates and residual dynamics determine how much of that solution survives in a network.</p>
+  </section>
+
+  <section id="references">
+    <h2>References</h2>
+    <ol class="refs">
+      <li>Andrew M. Saxe, James L. McClelland, and Surya Ganguli. <em>Exact solutions to the nonlinear dynamics of learning in deep linear neural networks</em>. ICLR 2014. <a href="https://arxiv.org/abs/1312.6120">Paper</a>. Deep linear learning and orthogonal initialization.</li>
+      <li>Jeffrey Pennington, Samuel S. Schoenholz, and Surya Ganguli. <em>Resurrecting the sigmoid in deep learning through dynamical isometry: theory and practice</em>. NeurIPS 2017. <a href="https://arxiv.org/abs/1711.04735">Paper</a>. Jacobian singular-value distributions and the role of nonlinearities.</li>
+      <li>Samuel S. Schoenholz, Justin Gilmer, Surya Ganguli, and Jascha Sohl-Dickstein. <em>Deep Information Propagation</em>. ICLR 2017. <a href="https://arxiv.org/abs/1611.01232">Paper</a>. Mean-field sensitivity and depth scales.</li>
+      <li>Kaiming He, Xiangyu Zhang, Shaoqing Ren, and Jian Sun. <em>Identity Mappings in Deep Residual Networks</em>. ECCV 2016. <a href="https://arxiv.org/abs/1603.05027">Paper</a>. The role of identity pathways.</li>
+      <li>Boris Hanin and David Rolnick. <em>How to Start Training: The Effect of Initialization and Architecture</em>. NeurIPS 2018. <a href="https://arxiv.org/abs/1803.01719">Paper</a>. Finite-width activation fluctuations, a complementary limitation of mean-only diagnostics.</li>
+    </ol>
+    <p class="small">These are expository working notes. The Gaussian moment table takes width to infinity at fixed depth; the residual diagonal example is exact before taking its depth limit. No claim of uniform-in-depth finite-width concentration is implied.</p>
+  </section>
+
+  <p class="related">Companion notes: <a href="ntk-and-lazy-training.html">NNGP, NTK, and lazy training</a> · <a href="mean-field-feature-learning.html">Mean-field feature learning</a> · <a href="normalization-and-residual-parametrization.html">Normalization and residual parametrization</a> · <a href="spectral-scaling-and-optimizer-geometry.html">Spectral scaling and optimizer geometry</a>.</p>
+</main>
+<footer>
+  <a href="../../index.html">dmartinezt.github.io</a> · research notes
+</footer>
+</body>
+</html>

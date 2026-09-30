@@ -1,0 +1,516 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#000000">
+  <script src="../../theme.js"></script>
+  <meta name="description" content="How a collection of trainable neurons becomes a moving probability distribution, why the learning-rate clock matters, and how the two-layer mean-field limit connects to μP.">
+  <title>Mean-field feature learning: a network as a distribution of neurons</title>
+  <link rel="stylesheet" href="../../styles.css">
+  <script src="../../assets/math-network.js" defer></script>
+  <script src="../../background.js" defer></script>
+  <style>
+    :root {
+      --bg: var(--background);
+      --ink: var(--text);
+      --rule: var(--line);
+      --link: var(--blue);
+      --box-bg: var(--surface);
+      --box-border: var(--line);
+      --code-bg: var(--surface);
+      --max: 790px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: 0; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Georgia, "Times New Roman", Times, serif;
+      font-size: 18px;
+      line-height: 1.68;
+      -webkit-font-smoothing: antialiased;
+    }
+    main, header, footer {
+      width: min(var(--max), calc(100% - 38px));
+      margin-left: auto;
+      margin-right: auto;
+    }
+    header { padding: 42px 0 24px; border-bottom: 1px solid var(--rule); }
+    .site-link {
+      display: inline-block;
+      margin-bottom: 30px;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 0.82rem;
+      letter-spacing: .02em;
+    }
+    h1, h2, h3 {
+      font-family: Georgia, "Times New Roman", Times, serif;
+      line-height: 1.22;
+      font-weight: 600;
+      scroll-margin-top: 18px;
+    }
+    h1 { font-size: clamp(2.15rem, 7vw, 3.45rem); margin: 0 0 12px; letter-spacing: -0.025em; }
+    h2 { font-size: 1.62rem; margin: 2.7em 0 .65em; }
+    h3 { font-size: 1.22rem; margin: 2em 0 .45em; }
+    p { margin: 1em 0; }
+    .subtitle { font-size: 1.18rem; color: var(--muted); max-width: 690px; margin: 0 0 12px; }
+    .meta {
+      color: var(--muted);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: .84rem;
+    }
+    main { padding: 28px 0 74px; }
+    a { color: var(--link); text-decoration: underline; text-underline-offset: 0.16em; }
+    a:hover { text-decoration-thickness: 2px; }
+    .toc {
+      border-bottom: 1px solid var(--rule);
+      padding: 0 0 24px;
+      margin-bottom: 34px;
+    }
+    .toc strong {
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: .86rem;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+    .toc ol { margin: 10px 0 0 1.25em; padding: 0; }
+    .toc li { margin: 2px 0; }
+    .toc a { text-decoration: none; }
+    .lead { font-size: 1.08em; }
+    .keyidea, .remark {
+      margin: 1.55em 0;
+      padding: 14px 18px;
+      border-left: 3px solid var(--box-border);
+      background: var(--box-bg);
+    }
+    .keyidea strong, .remark strong {
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: .86rem;
+      letter-spacing: .035em;
+      text-transform: uppercase;
+    }
+    .keyidea p:first-child, .remark p:first-child { margin-top: 0; }
+    .keyidea p:last-child, .remark p:last-child { margin-bottom: 0; }
+    .equation-summary {
+      margin: 1.8em 0;
+      padding: 17px 20px;
+      border: 1px solid var(--box-border);
+      background: var(--box-bg);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1.35em 0 1.7em;
+      font-size: .96em;
+    }
+    th, td { border-bottom: 1px solid var(--rule); padding: 9px 10px; text-align: left; vertical-align: top; }
+    th { font-weight: 600; }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: .88em;
+      background: var(--code-bg);
+      padding: .08em .28em;
+      border-radius: 3px;
+    }
+    mjx-container[display="true"] { overflow-x: auto; overflow-y: hidden; padding: .25em 0; max-width: 100%; }
+    .table-scroll { overflow-x: auto; margin: 1.35em 0 1.7em; }
+    .table-scroll table { margin: 0; min-width: 540px; }
+    caption { text-align: left; color: var(--muted); font-size: .9em; margin-bottom: .6em; }
+    a:focus-visible, button:focus-visible, .table-scroll:focus-visible { outline: 2px solid var(--link); outline-offset: 4px; }
+    @media print {
+      mjx-container[display="true"], .table-scroll { overflow: visible; }
+      .table-scroll table { min-width: 0; }
+    }
+    .refs { font-size: .94em; }
+    .refs li { margin-bottom: .75em; }
+    .small { color: var(--muted); font-size: .93em; }
+    footer {
+      border-top: 1px solid var(--rule);
+      padding: 22px 0 40px;
+      color: var(--muted);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: .82rem;
+    }
+    @media (max-width: 620px) {
+      body { font-size: 17px; }
+      header { padding-top: 28px; }
+      .site-link { margin-bottom: 22px; }
+      th, td { padding-left: 6px; padding-right: 6px; }
+    }
+    @media print {
+      :root { --bg: #fff; --ink: #000; --muted: #444; --rule: #bbb; --link: #000; --box-bg: #fff; --box-border: #888; }
+      body { font-size: 11.5pt; }
+      .site-link, .toc, .math-background { display: none; }
+      header { padding-top: 0; }
+      main, header, footer { width: 100%; }
+      a { text-decoration: none; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+    }
+
+    pre { overflow-x: auto; padding: 16px; border: 1px solid var(--rule); background: var(--code-bg); font-size: .82em; line-height: 1.55; }
+    pre code { padding: 0; background: none; font-size: 1em; }
+    .related { font-size: .93em; color: var(--muted); }
+    .table-scroll:focus-visible { outline: 2px solid var(--link); outline-offset: 4px; }
+    @media print { pre { white-space: pre-wrap; overflow-wrap: anywhere; } }
+  </style>
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(','\\)']],
+        displayMath: [['\\[','\\]']],
+        macros: {
+          mup: '\\mu\\mathrm{P}',
+          E: '\\mathbb{E}'
+        }
+      },
+      options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+    };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+</head>
+<body>
+<div class="math-background" aria-hidden="true"><canvas id="math-background"></canvas></div>
+<header>
+  <div class="note-toolbar">
+    <a class="site-link" href="../../index.html#notes">← Research notes</a>
+    <div class="theme-controls" role="group" aria-label="Appearance" hidden>
+      <button class="theme-toggle" data-theme-toggle type="button" aria-label="Switch to night mode"><span class="theme-icon" data-theme-icon aria-hidden="true">☾</span><span data-theme-label>Night</span></button>
+      <button class="theme-auto" data-theme-auto type="button" aria-pressed="true" aria-label="Use local time for day and night" title="Follow local time: day from 7 a.m. to 7 p.m.">Auto</button>
+    </div>
+  </div>
+  <h1>Mean-field feature learning: a network as a distribution of neurons</h1>
+  <p class="subtitle">How a collection of trainable neurons becomes a moving probability distribution, why the learning-rate clock matters, and how the two-layer mean-field limit connects to μP.</p>
+  <div class="meta">Research notes · 24 September 2026</div>
+</header>
+<main>
+  <nav class="toc" aria-label="Table of contents">
+    <strong>Contents</strong>
+    <ol>
+      <li><a href="#two-mean-fields">Two meanings of “mean field”</a></li>
+      <li><a href="#model">Start with an average of trainable neurons</a></li>
+      <li><a href="#clock">Why the ordinary gradient-flow clock is too slow</a></li>
+      <li><a href="#particles">Each neuron follows a residual-driven velocity</a></li>
+      <li><a href="#empirical-measure">Package the population into an empirical measure</a></li>
+      <li><a href="#potential">The loss induces a potential on neuron space</a></li>
+      <li><a href="#continuity">Moving particles give a continuity equation</a></li>
+      <li><a href="#wasserstein">Why Wasserstein geometry appears</a></li>
+      <li><a href="#dissipation">The risk decreases by the squared neuron velocity</a></li>
+      <li><a href="#moving-kernel">Feature learning still has a tangent kernel</a></li>
+      <li><a href="#zero-output">Zero initial output does not mean zero learning</a></li>
+      <li><a href="#solvable-example">A solvable example with a changing kernel</a></li>
+      <li><a href="#convexity">Convex in the distribution does not mean easy particle optimization</a></li>
+      <li><a href="#mup">Recovering two-layer μP in effective coordinates</a></li>
+      <li><a href="#finite-width">What remains random at finite width?</a></li>
+      <li><a href="#experiment">A small experiment that shows the population move</a></li>
+      <li><a href="#deep-networks">What this viewpoint contributes to deep parametrization</a></li>
+      <li><a href="#takeaway">Five equations to remember</a></li>
+    </ol>
+  </nav>
+  <p class="lead">A two-layer network is a collection of neurons, each carrying an output coefficient and a feature direction. At large width, it can be more useful to track how that population moves than to track every neuron separately. The mean-field training limit makes this idea precise: the network becomes an integral against a changing probability distribution.</p>
+  <p class="small">This note uses a fixed finite dataset, scalar outputs, full-batch gradient flow, and a smooth activation unless an example explicitly says otherwise. It develops the feature-learning counterpart to the <a href="ntk-and-lazy-training.html">NTK and lazy-training note</a> and relates its coordinates to <a href="tensor-programs-iv-v.html">two-layer μP</a>.</p>
+
+  <section id="two-mean-fields">
+    <h2>1. Two meanings of “mean field”</h2>
+    <p>In <a href="deep-information-propagation.html">deep information propagation</a>, mean-field reasoning replaces a wide layer's empirical statistics by expectations. The objects being propagated are activation variances and correlations, usually at random initialization.</p>
+    <p>Here the object is the <em>distribution of trainable neurons over training time</em>. Its evolution contains the correlations created by learning. The central approximation is that a large interacting population can be described by a deterministic distribution.</p>
+    <div class="table-scroll" role="region" aria-label="Two mean-field viewpoints" tabindex="0"><table>
+      <thead><tr><th scope="col">Viewpoint</th><th scope="col">What evolves?</th><th scope="col">What is being averaged?</th></tr></thead>
+      <tbody>
+        <tr><td>Signal propagation</td><td>Activation statistics across depth</td><td>Coordinates within a wide layer</td></tr>
+        <tr><td>Mean-field training</td><td>A neuron distribution across training time</td><td>Interacting neurons in a wide hidden layer</td></tr>
+      </tbody>
+    </table></div>
+    <p>Both use laws of large numbers. Only the second is, by itself, a description of how features learn. The foundational training analyses include <a href="https://arxiv.org/abs/1804.06561">Mei, Montanari, and Nguyen (2018)</a> and <a href="https://arxiv.org/abs/1805.09545">Chizat and Bach (2018)</a>.</p>
+  </section>
+
+  <section id="model">
+    <h2>2. Start with an average of trainable neurons</h2>
+    <p>Consider</p>
+    \[
+      f_n(x)=\frac1n\sum_{i=1}^n a_i\phi(w_i^\top x),
+      \qquad \theta_i=(a_i,w_i)\in\mathbb R^{1+d}.
+    \]
+    <p>Write \(\psi(x;\theta)=a\phi(w^\top x)\). The input dimension \(d\) is fixed, inputs have bounded norm, and initial \(a_i,w_i\) have order-one scales with respect to width. The factor \(1/n\) makes the network an average.</p>
+    <p>For training examples \((x_\mu,y_\mu)\), \(\mu=1,\ldots,m\), use</p>
+    \[
+      \mathcal L_n=\frac12\sum_{\mu=1}^m r_\mu^2,
+      \qquad r_\mu=f_n(x_\mu)-y_\mu.
+    \]
+    <p>We use a summed loss to keep formulas short. An averaged loss adds \(1/m\) to the velocities below; at fixed dataset size this is a change of the learning-rate clock.</p>
+    <p>The elementary neuron parameters have fixed dimension even as \(n\) increases. That is what makes a probability distribution on neuron space a useful limit object.</p>
+  </section>
+
+  <section id="clock">
+    <h2>3. Why the ordinary gradient-flow clock is too slow</h2>
+    <p>Differentiating with respect to one neuron gives</p>
+    \[
+      \nabla_{\theta_i}\mathcal L_n
+      =\frac1n\sum_\mu r_\mu\nabla_\theta\psi(x_\mu;\theta_i).
+    \]
+    <p>If we use an order-one learning rate on these stored coordinates, each neuron has velocity \(O(1/n)\). Its output contribution changes by another factor \(1/n\), and summing over \(n\) neurons leaves an \(O(1/n)\) output velocity. Training freezes on an order-one time interval.</p>
+    <p>Use the accelerated flow</p>
+    \[
+      \boxed{\dot\theta_i=-n\nabla_{\theta_i}\mathcal L_n
+      =-\sum_\mu r_\mu\nabla_\theta\psi(x_\mu;\theta_i).}
+    \]
+    <p>In discrete gradient descent this corresponds to a stored-coordinate learning rate \(n\eta\), where the base step \(\eta\) is chosen small enough for the dynamics. The factor \(n\) cancels the \(1/n\) derivative; it does not create an \(n\)-sized actual parameter update.</p>
+    <div class="keyidea"><strong>The time convention is part of the limit.</strong> Specifying \(f_n=n^{-1}\sum_i\psi_i\) is not enough. The learning-rate scaling decides whether the population moves on the time interval we observe.</div>
+  </section>
+
+  <section id="particles">
+    <h2>4. Each neuron follows a residual-driven velocity</h2>
+    <p>Separate the two components of the accelerated flow:</p>
+    \[
+      \dot a_i=-\sum_\mu r_\mu\phi(w_i^\top x_\mu),
+    \]
+    \[
+      \dot w_i=-\sum_\mu r_\mu a_i\phi'(w_i^\top x_\mu)x_\mu.
+    \]
+    <p>The first changes how strongly the neuron contributes. The second moves the feature itself. For a smooth ridge feature, changing \(w_i\) changes which inputs activate it and how sharply its response varies.</p>
+    <p>The neurons interact through the residuals: every \(r_\mu\) depends on the output of the whole population. They do not follow independent fixed vector fields after training begins.</p>
+    <p>Nevertheless, the interaction is simple. Each neuron sees the same collection of residuals and responds according to its own current feature. This shared field is the “mean field” acting on the particles.</p>
+  </section>
+
+  <section id="empirical-measure">
+    <h2>5. Package the population into an empirical measure</h2>
+    <p>Define a probability measure that puts mass \(1/n\) at every neuron:</p>
+    \[
+      \rho_n=\frac1n\sum_{i=1}^n\delta_{\theta_i}.
+    \]
+    <p>Then the finite network is exactly</p>
+    \[
+      \boxed{f_n(x)=f_{\rho_n}(x)
+      =\int\psi(x;\theta)\,\rho_n(d\theta).}
+    \]
+    <p>No approximation has occurred. A Dirac mass simply records the position of one neuron in parameter space. The coefficient \(a\) is part of that position; \(\rho_n\) remains a nonnegative probability measure even though neurons can make positive or negative contributions.</p>
+    <p>Permuting neuron labels leaves \(\rho_n\) and the function unchanged. Duplicating every neuron while adjusting the averaging factor also leaves the function unchanged. The measure representation removes bookkeeping that has no functional meaning.</p>
+    <p>As \(n\) grows, a well-sampled population can approach a smooth distribution or another non-atomic measure. It need not have a density for the integral representation to make sense.</p>
+  </section>
+
+  <section id="potential">
+    <h2>6. The loss induces a potential on neuron space</h2>
+    <p>For any candidate distribution, define</p>
+    \[
+      \mathcal R(\rho)=\frac12\sum_\mu(f_\rho(x_\mu)-y_\mu)^2.
+    \]
+    <p>To find the incentive for adding neurons near \(\theta\), perturb the distribution by a small signed measure \(\varepsilon\nu\), with zero total mass. Since the function is linear in the measure,</p>
+    \[
+      \left.\frac{d}{d\varepsilon}\mathcal R(\rho+\varepsilon\nu)
+      \right|_{\varepsilon=0}
+      =\int V_\rho(\theta)\,\nu(d\theta),
+    \]
+    \[
+      V_\rho(\theta)=\sum_\mu(f_\rho(x_\mu)-y_\mu)\psi(x_\mu;\theta).
+    \]
+    <p>This \(V_\rho\) is a functional derivative of the risk, defined up to an irrelevant constant on probability measures. A particle lowers the risk by moving downhill in neuron space:</p>
+    \[
+      v_\rho(\theta)=-\nabla_\theta V_\rho(\theta).
+    \]
+    <p>“Downhill” here refers to moving the neuron's parameters. It is different from directly reassigning probability mass between arbitrary locations.</p>
+  </section>
+
+  <section id="continuity">
+    <h2>7. Moving particles give a continuity equation</h2>
+    <p>Let \(q(\theta)\) be any smooth test function. Along the finite particle dynamics,</p>
+    \[
+      \frac{d}{dt}\int q\,d\rho_n
+      =\frac1n\sum_i\nabla q(\theta_i)\cdot v_{\rho_n}(\theta_i)
+      =\int\nabla q\cdot v_{\rho_n}\,d\rho_n.
+    \]
+    <p>This is the weak form of conservation of mass. Formally, if a density exists, integration by parts gives</p>
+    \[
+      \boxed{\partial_t\rho+\nabla_\theta\cdot(\rho v_\rho)=0,
+      \qquad
+      \partial_t\rho=\nabla_\theta\cdot(\rho\nabla_\theta V_\rho).}
+    \]
+    <p>Neurons move, but their total probability mass stays one. The PDE is nonlinear because its velocity field depends on the distribution it is transporting.</p>
+    <p>The weak equation already holds exactly for the finite atomic measure. The substantive large-width claim is that \(\rho_n(t)\) approaches a limiting distribution \(\rho(t)\) when the initial empirical measures converge and the interaction has enough regularity. Smoothness, moment bounds, and control of the time interval matter; a formal PDE alone is not a convergence theorem.</p>
+  </section>
+
+  <section id="wasserstein">
+    <h2>8. Why Wasserstein geometry appears</h2>
+    <p>Imagine changing a distribution by moving its mass a short distance. The cost of a velocity field is its mean squared speed:</p>
+    \[
+      \|v\|_\rho^2=\int\|v(\theta)\|_2^2\,\rho(d\theta).
+    \]
+    <p>For the empirical measure this becomes \(n^{-1}\sum_i\|\dot\theta_i\|^2\). Steepest descent in this averaged particle metric therefore uses \(n\) times the gradient computed in the ordinary unweighted product metric. This is the geometric counterpart of the time rescaling in §3.</p>
+    <p>The resulting transport geometry is the quadratic Wasserstein geometry on probability measures. One need not learn the full optimal-transport theory to follow the finite-particle derivation: it is enough to remember that the geometry measures how far neurons move.</p>
+    <p>The choice of geometry matters. Different learning rates for \(a\) and \(w\) change the particle metric and velocity. “Gradient flow of the same risk” does not specify a unique algorithm until its metric is specified. <a href="https://arxiv.org/abs/1805.09545">Chizat and Bach</a> use the transport viewpoint to study convergence under additional structural assumptions.</p>
+  </section>
+
+  <section id="dissipation">
+    <h2>9. The risk decreases by the squared neuron velocity</h2>
+    <p>Assume enough regularity and decay to justify the calculation. Insert the continuity equation into the derivative of the risk:</p>
+    \[
+      \frac{d\mathcal R}{dt}
+      =\int V_\rho\,\partial_t\rho
+      =-\int\|\nabla_\theta V_\rho\|^2\,d\rho
+      \leq0.
+    \]
+    <p>The finite counterpart is equally direct:</p>
+    \[
+      \frac{d\mathcal L_n}{dt}
+      =-n\sum_i\|\nabla_{\theta_i}\mathcal L_n\|^2
+      =-\frac1n\sum_i\|\dot\theta_i\|^2.
+    \]
+    <p>These identities explain why the scaling is natural: an order-one average squared particle speed causes an order-one decrease in risk.</p>
+    <p>Monotonic decrease does not prove global convergence. The risk can stop decreasing when particles reach stationary positions even if moving mass to a currently unoccupied part of neuron space would improve the fit.</p>
+  </section>
+
+  <section id="moving-kernel">
+    <h2>10. Feature learning still has a tangent kernel</h2>
+    <p>Differentiate the prediction using the particle velocity:</p>
+    \[
+      \dot f_\rho(x)
+      =\int\nabla_\theta\psi(x;\theta)\cdot v_\rho(\theta)\,d\rho
+      =-\sum_\mu K_\rho(x,x_\mu)r_\mu,
+    \]
+    \[
+      \boxed{K_\rho(x,x')
+      =\int\nabla_\theta\psi(x;\theta)^\top
+      \nabla_\theta\psi(x';\theta)\,\rho(d\theta).}
+    \]
+    <p>For ridge neurons, this is</p>
+    \[
+      K_\rho(x,x')=\int\left[
+      \phi(w^\top x)\phi(w^\top x')
+      +a^2\phi'(w^\top x)\phi'(w^\top x')\,x^\top x'
+      \right]d\rho(a,w).
+    \]
+    <p>The formula resembles the two-layer NTK. The distinction is that \(\rho_t\) moves by order one, so this kernel is allowed to change by order one.</p>
+    <p>For the finite averaged network, the raw parameter NTK is \(K_{\rho_n}/n\). Multiplying the stored-coordinate learning rates by \(n\) gives the effective kernel \(K_{\rho_n}\). This is a concrete example of the identity \(K^{\mathrm{eff}}=JMJ^\top\) in the <a href="ntk-and-lazy-training.html#parameter-coordinates">NTK note</a>.</p>
+  </section>
+
+  <section id="zero-output">
+    <h2>11. Zero initial output does not mean zero learning</h2>
+    <p>Suppose initially \(a\) is independent of \(w\), has mean zero, and has nonzero variance. Then</p>
+    \[
+      f_{\rho_0}(x)=\mathbb E[a]\mathbb E[\phi(w^\top x)]=0.
+    \]
+    <p>The finite network fluctuates around zero at scale \(n^{-1/2}\), because it is an average of centered independent terms. Nevertheless, the initial kernel in §10 is generally nonzero, and</p>
+    \[
+      \dot{\mathbf f}_0=K_{\rho_0}\mathbf y
+    \]
+    <p>under the summed squared loss. The target immediately creates a coherent response.</p>
+    <p>The reason is that training correlates coefficients and features with the residuals. Cancellation that held for independent random terms need not hold for learned terms. This is the same random-versus-coherent distinction that explains the small initial readout in <a href="tensor-programs-iv-v.html#init-w3">μP</a>.</p>
+    <p>Initializing both \(a\) and \(w\) at zero is different. For a linear activation, all parameter derivatives then vanish. A zero function with a rich population behind it and a zero function with a degenerate parameterization can have completely different learning behavior.</p>
+  </section>
+
+  <section id="solvable-example">
+    <h2>12. A solvable example with a changing kernel</h2>
+    <p>Take one training example \(x=1,y=1\), use \(\phi(z)=z\), and let every neuron start with \(a_i=w_i=s_0&gt;0\). This deliberately symmetric population stays symmetric. Write \(a_i=w_i=s(t)\), so \(f=s^2=:p\).</p>
+    <p>The particle equations reduce to</p>
+    \[
+      \dot s=(1-s^2)s,\qquad
+      \boxed{\dot p=2p(1-p).}
+    \]
+    <p>For \(0&lt;p_0&lt;1\), the exact solution is</p>
+    \[
+      p(t)=\frac{p_0e^{2t}}{1-p_0+p_0e^{2t}}.
+    \]
+    <p>The effective tangent kernel is \(K(t)=a^2+w^2=2p(t)\). Learning accelerates as the factors grow, then slows as the residual vanishes.</p>
+    <p>A frozen tangent kernel would instead predict</p>
+    \[
+      p_{\mathrm{lin}}(t)=1-(1-p_0)e^{-2p_0t}.
+    \]
+    <p>For \(p_0=0.01\), reaching \(p=1/2\) takes \(\tfrac12\log99\approx2.30\) in the nonlinear dynamics, versus \(\log(1.98)/0.02\approx34.15\) with the frozen kernel. The difference persists at every width because duplicating the population changes neither equation.</p>
+    <div class="remark"><strong>What this example establishes.</strong> The function is linear in its input, but nonlinear in its factors. It demonstrates adaptive tangent dynamics, not a generalization advantage or an expressive advantage of nonlinear input features. At \(s_0=0\), the system remains stuck.</div>
+  </section>
+
+  <section id="convexity">
+    <h2>13. Convex in the distribution does not mean easy particle optimization</h2>
+    <p>The map \(\rho\mapsto f_\rho\) is linear. Consequently, squared risk is convex under ordinary mixtures:</p>
+    \[
+      \mathcal R((1-\tau)\rho+\tau\nu)
+      \leq(1-\tau)\mathcal R(\rho)+\tau\mathcal R(\nu),
+      \qquad 0\leq\tau\leq1.
+    \]
+    <p>But particle training transports existing mass. It does not directly take an arbitrary mixture with a better distribution. Convexity along mixtures is different from convexity along transport paths.</p>
+    <p>The previous example makes this concrete. The distribution concentrated at \((a,w)=(0,0)\) is stationary, because the gradient of \(aw\) vanishes there. A distribution concentrated at \((1,1)\) achieves zero loss. Mixture convexity does not give the stationary particles a nonzero local velocity.</p>
+    <p>Global-convergence results therefore need hypotheses beyond “the risk is convex in measures”: for example, assumptions on the neuron representation, initialization support, and the evolution. The cited mean-field papers study such conditions in specified settings; they do not establish global convergence for arbitrary deep networks.</p>
+  </section>
+
+  <section id="mup">
+    <h2>14. Recovering two-layer μP in effective coordinates</h2>
+    <p>Write the same finite model as</p>
+    \[
+      f_n(x)=\sum_i v_i\phi(w_i^\top x),
+      \qquad v_i=\frac{a_i}{n}.
+    \]
+    <p>Since \(a_i=O(1)\), effective readout entries satisfy \(v_i=O(1/n)\). The stored \(a_i\) are trained with rate \(n\eta\). By the chain rule,</p>
+    \[
+      \Delta v_i=\frac1n\Delta a_i
+      =-\eta\,\partial_{a_i}\mathcal L
+      =-\frac{\eta}{n}\partial_{v_i}\mathcal L.
+    \]
+    <p>The hidden weights retain rate \(n\eta\). Thus, in effective coordinates,</p>
+    \[
+      \boxed{w_i=O(1),\quad v_i=O(n^{-1}),\qquad
+      \eta_w=\eta n,\quad \eta_v=\eta/n.}
+    \]
+    <p>These are the input and readout rules of two-layer μP with fixed input dimension. A fan-in factor such as \(1/\sqrt d\) is a width-independent constant here.</p>
+    <p>This equivalence is for the stated SGD convention. It does not say that every deep mean-field construction equals every form of μP. A deep network's hidden matrices link two growing populations, introducing dependencies that the simple one-population measure does not encode.</p>
+  </section>
+
+  <section id="finite-width">
+    <h2>15. What remains random at finite width?</h2>
+    <p>At initialization, an empirical average of independent neurons has ordinary sampling fluctuations. With sufficient moments, a fixed observable has fluctuations of order \(n^{-1/2}\). Under regularity assumptions, finite-time stability of the population dynamics can propagate convergence from the initial sample into training.</p>
+    <p>The constants in such bounds can depend strongly on training time, parameter norms, and the task. A finite-time law of large numbers does not justify taking \(t\to\infty\) and \(n\to\infty\) in either order without further work.</p>
+    <p>There are also two distinct sources of randomness: sampling the initial neurons and sampling minibatches. Full-batch gradient flow has only the former. Minibatch training gives particles a shared random driving signal; its limit can depend on how the batch size and step size scale.</p>
+    <p>A diffusion term belongs in the PDE only when the algorithm and limit produce one. Explicit independent parameter noise and ordinary minibatch noise should not be treated as interchangeable sources of independent Brownian motion for every neuron.</p>
+  </section>
+
+  <section id="experiment">
+    <h2>16. A small experiment that shows the population move</h2>
+    <p>Use two-dimensional unit-circle inputs and a target \(y(x)=\tanh(3u^\top x)\) for a fixed direction \(u\). Initialize \(a_i\) as centered Gaussians and \(w_i\) as isotropic Gaussians, then train a tanh network with \(f_n=n^{-1}\sum_i a_i\tanh(w_i^\top x)\).</p>
+    <ol>
+      <li>Compare widths 64, 256, and 1024 using stored-coordinate rate \(n\eta\), a fixed dataset, and a fixed base training horizon.</li>
+      <li>Plot the \(w_i\) in the plane, coloring each point by \(a_i\). Compare their initial and trained distributions, rather than comparing arbitrary neuron labels across widths.</li>
+      <li>Measure predictions and \(K_{\rho_n(t)}\) on the same held-out inputs. Distributional observables should become less dependent on the initial sample as width grows in a controlled regime.</li>
+      <li>Repeat with rate \(\eta\) instead of \(n\eta\). At a fixed number of sufficiently small steps, the missing time rescaling should make learning slower as width grows.</li>
+    </ol>
+    <p>This is a proposed experiment, not a claim of measured alignment or improved test loss. First reproduce the exact scalar solution in §12 as a check on the learning-rate convention. For the two-dimensional task, the features may move without finding the most useful target direction in the allotted time.</p>
+  </section>
+
+  <section id="deep-networks">
+    <h2>17. What this viewpoint contributes to deep parametrization</h2>
+    <p>The main lesson is that infinitely many neurons can keep adapting. An infinite-width limit need not remove the nonlinear feedback between learned features, predictions, and residuals.</p>
+    <p>The limitation is structural. In a two-layer network, \((a_i,w_i)\) is a complete neuron description of fixed dimension. In a deep network, the incoming weights of a hidden neuron themselves have growing dimension, and each layer's population interacts with the others through trained matrices. The integral representation above cannot simply be copied layer by layer without resolving those dependencies.</p>
+    <p><a href="tensor-programs-iv-v.html">Tensor Programs</a> supply a different framework for tracking wide-network computations and training dependencies. The two-layer calculation provides a concrete model of what it means for that more general theory to retain feature learning.</p>
+    <div class="keyidea"><strong>Connection to μTransfer.</strong> A width-independent population equation makes a width-independent learning-rate coordinate plausible. It does not prove that the best finite-model hyperparameter converges quickly, or that changing the dataset, training horizon, or optimizer preserves the same optimum.</div>
+  </section>
+
+  <section id="takeaway">
+    <h2>18. Five equations to remember</h2>
+    <div class="equation-summary">
+      \[\boxed{\rho_n=\frac1n\sum_i\delta_{(a_i,w_i)},\qquad f_\rho(x)=\int a\phi(w^\top x)\,d\rho}\]
+      \[\boxed{\dot\theta_i=-n\nabla_{\theta_i}\mathcal L_n=-\nabla_\theta V_{\rho_n}(\theta_i)}\]
+      \[\boxed{\partial_t\rho=\nabla_\theta\cdot(\rho\nabla_\theta V_\rho)}\]
+      \[\boxed{\frac{d\mathcal R}{dt}=-\int\|\nabla_\theta V_\rho\|^2\,d\rho}\]
+      \[\boxed{\dot{\mathbf f}=-K_{\rho_t}(\mathbf f-\mathbf y)}\]
+    </div>
+    <p>The population representation removes neuron labels. The accelerated clock keeps particles moving. The continuity equation conserves their mass. The energy identity shows descent. The evolving kernel records the effect of feature learning on future learning.</p>
+  </section>
+
+  <section id="references">
+    <h2>References</h2>
+    <ol class="refs">
+      <li>Song Mei, Andrea Montanari, and Phan-Minh Nguyen. <em>A Mean Field View of the Landscape of Two-Layer Neural Networks</em>. PNAS 2018. <a href="https://arxiv.org/abs/1804.06561">Paper</a>. Distributional training dynamics and convergence in specified two-layer settings.</li>
+      <li>Lénaïc Chizat and Francis Bach. <em>On the Global Convergence of Gradient Descent for Over-parameterized Models using Optimal Transport</em>. NeurIPS 2018. <a href="https://arxiv.org/abs/1805.09545">Paper</a>. Particle methods and Wasserstein gradient flows.</li>
+      <li>Lénaïc Chizat, Edouard Oyallon, and Francis Bach. <em>On Lazy Training in Differentiable Programming</em>. NeurIPS 2019. <a href="https://arxiv.org/abs/1812.07956">Paper</a>. How scaling can suppress nonlinear learning.</li>
+      <li>Greg Yang and Edward J. Hu. <em>Tensor Programs IV: Feature Learning in Infinite-Width Neural Networks</em>. ICML 2021. <a href="https://proceedings.mlr.press/v139/yang21c.html">Paper</a>. The broader width-parametrization framework.</li>
+    </ol>
+    <p class="small">These are expository working notes. The continuity equation is derived for the stated deterministic flow. The scalar factorization example is an exact illustrative calculation; the population experiment is a reproducible proposal rather than an empirical result.</p>
+  </section>
+
+  <p class="related">Companion notes: <a href="ntk-and-lazy-training.html">NNGP, NTK, and lazy training</a> · <a href="normalization-and-residual-parametrization.html">Normalization and residual parametrization</a> · <a href="dynamical-isometry.html">Dynamical isometry</a> · <a href="spectral-scaling-and-optimizer-geometry.html">Spectral scaling and optimizer geometry</a>.</p>
+</main>
+<footer>
+  <a href="../../index.html">dmartinezt.github.io</a> · research notes
+</footer>
+</body>
+</html>

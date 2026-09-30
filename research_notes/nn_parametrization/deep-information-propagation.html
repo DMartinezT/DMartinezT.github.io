@@ -1,0 +1,579 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#000000">
+  <script src="../../theme.js"></script>
+  <meta name="description" content="Intuitive research notes on deep information propagation in MLPs and residual networks: variance, correlations, gradients, criticality, and connections to Tensor Programs and CompleteP.">
+  <title>Deep information propagation: from MLPs to residual networks</title>
+  <link rel="stylesheet" href="../../styles.css">
+  <script src="../../assets/math-network.js" defer></script>
+  <script src="../../background.js" defer></script>
+  <style>
+    :root {
+      --bg: var(--background);
+      --ink: var(--text);
+      --rule: var(--line);
+      --link: var(--blue);
+      --box-bg: var(--surface);
+      --box-border: var(--line);
+      --code-bg: var(--surface);
+      --max: 790px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: 0; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Georgia, "Times New Roman", Times, serif;
+      font-size: 18px;
+      line-height: 1.68;
+      -webkit-font-smoothing: antialiased;
+    }
+    main, header, footer {
+      width: min(var(--max), calc(100% - 38px));
+      margin-left: auto;
+      margin-right: auto;
+    }
+    header { padding: 42px 0 24px; border-bottom: 1px solid var(--rule); }
+    .site-link {
+      display: inline-block;
+      margin-bottom: 30px;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 0.82rem;
+      letter-spacing: .02em;
+    }
+    h1, h2, h3 {
+      font-family: Georgia, "Times New Roman", Times, serif;
+      line-height: 1.22;
+      font-weight: 600;
+      scroll-margin-top: 18px;
+    }
+    h1 { font-size: clamp(2.15rem, 7vw, 3.45rem); margin: 0 0 12px; letter-spacing: -0.025em; }
+    h2 { font-size: 1.62rem; margin: 2.7em 0 .65em; }
+    h3 { font-size: 1.22rem; margin: 2em 0 .45em; }
+    p { margin: 1em 0; }
+    .subtitle { font-size: 1.18rem; color: var(--muted); max-width: 690px; margin: 0 0 12px; }
+    .meta {
+      color: var(--muted);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: .84rem;
+    }
+    main { padding: 28px 0 74px; }
+    a { color: var(--link); text-decoration: underline; text-underline-offset: 0.16em; }
+    a:hover { text-decoration-thickness: 2px; }
+    .toc {
+      border-bottom: 1px solid var(--rule);
+      padding: 0 0 24px;
+      margin-bottom: 34px;
+    }
+    .toc strong {
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: .86rem;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+    .toc ol { margin: 10px 0 0 1.25em; padding: 0; }
+    .toc li { margin: 2px 0; }
+    .toc a { text-decoration: none; }
+    .lead { font-size: 1.08em; }
+    .keyidea, .remark {
+      margin: 1.55em 0;
+      padding: 14px 18px;
+      border-left: 3px solid var(--box-border);
+      background: var(--box-bg);
+    }
+    .keyidea strong, .remark strong {
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: .86rem;
+      letter-spacing: .035em;
+      text-transform: uppercase;
+    }
+    .keyidea p:first-child, .remark p:first-child { margin-top: 0; }
+    .keyidea p:last-child, .remark p:last-child { margin-bottom: 0; }
+    .equation-summary {
+      margin: 1.8em 0;
+      padding: 17px 20px;
+      border: 1px solid var(--box-border);
+      background: var(--box-bg);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1.35em 0 1.7em;
+      font-size: .96em;
+    }
+    th, td { border-bottom: 1px solid var(--rule); padding: 9px 10px; text-align: left; vertical-align: top; }
+    th { font-weight: 600; }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: .88em;
+      background: var(--code-bg);
+      padding: .08em .28em;
+      border-radius: 3px;
+    }
+    mjx-container[display="true"] { overflow-x: auto; overflow-y: hidden; padding: .25em 0; max-width: 100%; }
+    .table-scroll { overflow-x: auto; margin: 1.35em 0 1.7em; }
+    .table-scroll table { margin: 0; min-width: 540px; }
+    caption { text-align: left; color: var(--muted); font-size: .9em; margin-bottom: .6em; }
+    a:focus-visible, button:focus-visible, .table-scroll:focus-visible { outline: 2px solid var(--link); outline-offset: 4px; }
+    @media print {
+      mjx-container[display="true"], .table-scroll { overflow: visible; }
+      .table-scroll table { min-width: 0; }
+    }
+    .refs { font-size: .94em; }
+    .refs li { margin-bottom: .75em; }
+    .small { color: var(--muted); font-size: .93em; }
+    footer {
+      border-top: 1px solid var(--rule);
+      padding: 22px 0 40px;
+      color: var(--muted);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: .82rem;
+    }
+    @media (max-width: 620px) {
+      body { font-size: 17px; }
+      header { padding-top: 28px; }
+      .site-link { margin-bottom: 22px; }
+      th, td { padding-left: 6px; padding-right: 6px; }
+    }
+    @media print {
+      :root { --bg: #fff; --ink: #000; --muted: #444; --rule: #bbb; --link: #000; --box-bg: #fff; --box-border: #888; }
+      body { font-size: 11.5pt; }
+      .site-link, .toc, .math-background { display: none; }
+      header { padding-top: 0; }
+      main, header, footer { width: 100%; }
+      a { text-decoration: none; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+    }
+  </style>
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(','\\)']],
+        displayMath: [['\\[','\\]']],
+        macros: {
+          mup: '\\mu\\mathrm{P}',
+          E: '\\mathbb{E}'
+        }
+      },
+      options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+    };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+</head>
+<body>
+<div class="math-background" aria-hidden="true"><canvas id="math-background"></canvas></div>
+<header>
+  <div class="note-toolbar">
+    <a class="site-link" href="../../index.html#notes">← Research notes</a>
+    <div class="theme-controls" role="group" aria-label="Appearance" hidden>
+      <button class="theme-toggle" data-theme-toggle type="button" aria-label="Switch to night mode"><span class="theme-icon" data-theme-icon aria-hidden="true">☾</span><span data-theme-label>Night</span></button>
+      <button class="theme-auto" data-theme-auto type="button" aria-pressed="true" aria-label="Use local time for day and night" title="Follow local time: day from 7 a.m. to 7 p.m.">Auto</button>
+    </div>
+  </div>
+  <h1>Deep information propagation: from MLPs to residual networks</h1>
+  <p class="subtitle">How signal size, input geometry, and gradients evolve through depth; why skip connections change the calculation; and how initialization connects to μP, Depth-μP, and CompleteP.</p>
+  <div class="meta">Research notes · 22 September 2026</div>
+</header>
+
+<main>
+  <nav class="toc" aria-label="Table of contents">
+    <strong>Contents</strong>
+    <ol>
+      <li><a href="#big-picture">What is supposed to propagate?</a></li>
+      <li><a href="#mlp-variance">An MLP becomes a scalar variance recursion</a></li>
+      <li><a href="#two-inputs">Why one input is not enough</a></li>
+      <li><a href="#edge-of-chaos">The edge of chaos and the depth scale</a></li>
+      <li><a href="#mlp-gradients">Why the same factor controls gradients</a></li>
+      <li><a href="#relu">A worked example: critical ReLU still forgets angles</a></li>
+      <li><a href="#isometry">What criticality does not guarantee</a></li>
+      <li><a href="#residual-setup">Residual connections change the calculation</a></li>
+      <li><a href="#residual-moments">Adding covariance instead of replacing it</a></li>
+      <li><a href="#residual-budget">The sum of squared residual multipliers</a></li>
+      <li><a href="#residual-correlations">A worked residual example: slowing the correlation map</a></li>
+      <li><a href="#residual-gradients">Identity paths and gradient propagation</a></li>
+      <li><a href="#normalization">Centering, normalization, and the location of the skip</a></li>
+      <li><a href="#tensor-programs">Connecting initialization to Tensor Programs IV–VI</a></li>
+      <li><a href="#completep">Why CompleteP can prefer a smooth depth limit</a></li>
+      <li><a href="#synthesis">How the theories fit together</a></li>
+      <li><a href="#checks">What to measure in an actual network</a></li>
+      <li><a href="#takeaway">Five equations to remember</a></li>
+    </ol>
+  </nav>
+
+  <p class="lead">The cleanest way I have found to connect deep information propagation to the Tensor Programs notes is to separate two questions. Before training, can a signal cross the network without its scale or geometry degenerating? During training, can parameter updates change that signal in a useful, stable way? Information propagation addresses the first question. The notes on <a href="tensor-programs-iv-v.html">μP and μTransfer</a>, <a href="tensor-programs-vi.html">Depth-μP</a>, and <a href="completep.html">CompleteP</a> examine different aspects of the second, while also requiring stable initialization.</p>
+  <p class="small">The starting points are <a href="https://arxiv.org/html/1606.05340">Poole et al. (2016)</a> and <a href="https://arxiv.org/html/1611.01232">Schoenholz et al. (2017)</a> for MLPs, and <a href="https://arxiv.org/html/1712.08969v1">Yang and Schoenholz (2017)</a> and <a href="https://proceedings.mlr.press/v130/hayou21a.html">Hayou et al. (2021)</a> for residual networks. The calculations below use explicitly stated toy architectures to make the connection between these theories visible.</p>
+
+  <section id="big-picture">
+    <h2>1. What is supposed to propagate?</h2>
+    <p>Take two inputs, \(a\) and \(b\), and pass them through the <em>same</em> randomly initialized network. For a width-\(n\) hidden vector \(z^\ell\), track</p>
+    \[
+      q_a^\ell=\frac{\|z^\ell(a)\|^2}{n},\qquad
+      k_{ab}^\ell=\frac{z^\ell(a)^\top z^\ell(b)}{n},\qquad
+      c_{ab}^\ell=\frac{k_{ab}^\ell}{\sqrt{q_a^\ell q_b^\ell}}.
+    \]
+    <p>The first measures signal size; the last measures alignment. For equal signal sizes \(q_a^\ell=q_b^\ell=q^\ell\), their squared distance per coordinate is</p>
+    \[
+      d_\ell^2=\frac{\|z^\ell(a)-z^\ell(b)\|^2}{n}
+      =2q^\ell(1-c^\ell).
+    \]
+    <p>This identity explains why checking norms alone is insufficient. Two vectors can both have a perfectly healthy norm while becoming indistinguishable. Conversely, a growing distance can merely reflect exploding norms. We also need the input-to-hidden Jacobian, which measures how small perturbations and backward signals are amplified.</p>
+    <div class="keyidea"><strong>Three questions.</strong> Does the signal stay finite? Do different inputs retain meaningful differences? Can sensitivity travel through the network? Here “information” refers to these geometric and sensitivity diagnostics; it is not a calculation of Shannon mutual information.</div>
+  </section>
+
+  <section id="mlp-variance">
+    <h2>2. An MLP becomes a scalar variance recursion</h2>
+    <p>Use preactivations as the state of a constant-width MLP:</p>
+    \[
+      z^{\ell+1}=W^{\ell+1}\phi(z^\ell)+b^{\ell+1},\qquad
+      W_{ij}^{\ell+1}\sim\mathcal N(0,\sigma_w^2/n),\qquad
+      b_i^{\ell+1}\sim\mathcal N(0,\sigma_b^2).
+    \]
+    <p>Weights and biases are independent across layers. Conditional on the preceding features, each new coordinate is a centered Gaussian with variance</p>
+    \[
+      \frac{\sigma_w^2}{n}\sum_j\phi(z_j^\ell)^2+\sigma_b^2.
+    \]
+    <p>At large width, the average concentrates. If a typical coordinate of \(z^\ell\) has distribution \(\mathcal N(0,q^\ell)\), the next variance is therefore</p>
+    \[
+      \boxed{q^{\ell+1}=V(q^\ell),\qquad
+      V(q)=\sigma_w^2\mathbb E[\phi(\sqrt q\,Z)^2]+\sigma_b^2,\quad
+      Z\sim\mathcal N(0,1).}
+    \]
+    <p>A high-dimensional forward pass has become iteration of a scalar map. A fixed point \(q_*=V(q_*)\) gives a candidate persistent signal scale. Local attraction requires \(|V'(q_*)|&lt;1\). The width factor \(1/n\) keeps one layer well scaled; the remaining constants decide what repeated composition does.</p>
+    <p>This is the mean-field reduction in <a href="https://arxiv.org/html/1606.05340#S2">Poole et al., Section 2</a>. We take width to infinity at fixed depth before using the recursion at large depth. Gaussian weights make the conditional Gaussian step exact; replacing its empirical variance by a deterministic limit is the large-width step.</p>
+  </section>
+
+  <section id="two-inputs">
+    <h2>3. Why one input is not enough</h2>
+    <p>Suppose both inputs have the same variance \(q\) and correlation \(c\). Their typical coordinates can be represented as</p>
+    \[
+      U=\sqrt q\,Z_1,\qquad
+      V_c=\sqrt q\bigl(cZ_1+\sqrt{1-c^2}\,Z_2\bigr),
+    \]
+    <p>with independent standard Gaussians \(Z_1,Z_2\). Define the covariance produced by a fresh layer as</p>
+    \[
+      K(q,c)=\sigma_w^2\mathbb E[\phi(U)\phi(V_c)]+\sigma_b^2.
+    \]
+    <p>Using the same weights for both inputs makes the covariance depend on their old alignment. Using the same bias adds \(\sigma_b^2\) to their covariance as well as their variances. Thus</p>
+    \[
+      k^{\ell+1}=K(q^\ell,c^\ell),\qquad
+      c^{\ell+1}=\frac{K(q^\ell,c^\ell)}{V(q^\ell)}.
+    \]
+    <p>After the variance has settled to a positive \(q_*\), write this as \(c^{\ell+1}=C(c^\ell)\), with \(C(c)=K(q_*,c)/q_*\). If all initial correlations approach the same value, the network loses this measure of the original pairwise geometry. In particular, \(c\to1\) at fixed \(q_*\) implies \(d_\ell\to0\). The two-input construction is developed in <a href="https://arxiv.org/html/1606.05340#S3">Poole et al., Section 3</a>.</p>
+  </section>
+
+  <section id="edge-of-chaos">
+    <h2>4. The edge of chaos and the depth scale</h2>
+    <p>Identical inputs remain identical, so \(C(1)=1\). The local question is whether nearly identical inputs move closer together or farther apart. Gaussian differentiation gives</p>
+    \[
+      \frac{\partial K(q,c)}{\partial c}
+      =\sigma_w^2q\,\mathbb E[\phi'(U)\phi'(V_c)],
+    \]
+    <p>and hence, at a positive variance fixed point,</p>
+    \[
+      \boxed{\chi=C'(1)=\sigma_w^2\mathbb E[\phi'(\sqrt{q_*}Z)^2].}
+    \]
+    <p>Writing \(\delta_\ell=1-c^\ell\), the linearized recurrence is \(\delta_{\ell+1}\approx\chi\delta_\ell\). This gives the familiar classification:</p>
+    <table>
+      <thead><tr><th scope="col">Local factor</th><th scope="col">Nearby inputs</th><th scope="col">Interpretation</th></tr></thead>
+      <tbody>
+        <tr><td>\(\chi&lt;1\)</td><td>Differences contract exponentially.</td><td>Ordered regime.</td></tr>
+        <tr><td>\(\chi&gt;1\)</td><td>Small differences initially expand.</td><td>Chaotic regime; nonlinear dynamics eventually matter.</td></tr>
+        <tr><td>\(\chi=1\)</td><td>The linearized exponential rate vanishes.</td><td>Criticality, or the edge of chaos.</td></tr>
+      </tbody>
+    </table>
+    <p>In the ordered regime, \(\delta_\ell\approx\delta_0e^{-\ell/\xi_c}\), where</p>
+    \[
+      \xi_c=-\frac1{\log\chi}.
+    \]
+    <p>For example, \(\chi=0.9\) gives \(\xi_c\approx9.5\) layers, while \(\chi=0.99\) gives about 99.5. A small per-layer contraction matters after enough compositions. Near another attractive fixed point \(c_*\), the relevant derivative is \(C'(c_*)\), not necessarily \(C'(1)\). Variance relaxation has its own scale, \(\xi_q=-1/\log|V'(q_*)|\), when the derivative has magnitude strictly between zero and one.</p>
+    <p><a href="https://arxiv.org/html/1611.01232#S3">Deep Information Propagation, Section 3</a>, relates these depth scales to trainability. Their divergence removes an exponential obstruction; it does not promise that correlations stay unchanged forever or that optimization succeeds for every task.</p>
+  </section>
+
+  <section id="mlp-gradients">
+    <h2>5. Why the same factor controls gradients</h2>
+    <p>The derivative of one MLP layer is \(J_\ell=W^{\ell+1}D_\ell\), where \(D_\ell=\operatorname{diag}(\phi'(z^\ell))\). A small forward perturbation is multiplied by \(J_\ell\); a backward signal is multiplied by its transpose. Under the usual mean-field independence approximation, a backward vector \(\delta^{\ell+1}\) obeys</p>
+    \[
+      g_\ell\approx\chi_\ell g_{\ell+1},\qquad
+      g_\ell=\frac1n\mathbb E\|\delta^\ell\|^2,\qquad
+      \chi_\ell=\sigma_w^2\mathbb E[\phi'(\sqrt{q^\ell}Z)^2].
+    \]
+    <p>When \(q^\ell\approx q_*\), this becomes \(g_0/g_L\approx\chi^L\). The same local sensitivity that contracts differences between inputs also contracts backward signals. These are <em>squared</em> norms; gradient RMS changes by approximately \(\chi^{L/2}\).</p>
+    <p>The original backward calculation explicitly uses a gradient-independence approximation: a loss gradient depends on the weights that produced it, so treating these objects as independent needs justification. See <a href="https://arxiv.org/html/1611.01232#S4">Section 4</a>. This is an initialization diagnostic, not a recursion we can automatically reuse after feature learning creates new correlations.</p>
+  </section>
+
+  <section id="relu">
+    <h2>6. A worked example: critical ReLU still forgets angles</h2>
+    <p>Set \(\phi(z)=\max(0,z)\) and \(\sigma_b=0\). Half of a centered Gaussian’s second moment lies on its positive side, so</p>
+    \[
+      V(q)=\frac{\sigma_w^2}{2}q,\qquad
+      \chi=\frac{\sigma_w^2}{2}.
+    \]
+    <p>The He choice \(\sigma_w^2=2\) preserves \(q\) and gives \(\chi=1\). Every positive \(q\) is now a variance fixed point; there is no attraction to one preferred scale. But the normalized covariance still evolves. Evaluating the two-dimensional Gaussian integral gives</p>
+    \[
+      C_{\mathrm{ReLU}}(c)
+      =\frac{\sqrt{1-c^2}+(\pi-\arccos c)c}{\pi}.
+    \]
+    <p>This map lies above \(c\) for \(-1\leq c&lt;1\). Thus correlations increase despite critical initialization. To see the rate, put \(c=\cos\theta\). Then \(C(c)-c=(\sin\theta-\theta\cos\theta)/\pi\); expanding at small \(\theta\) yields</p>
+    \[
+      C(1-\delta)=1-\delta+
+      \frac{2\sqrt2}{3\pi}\delta^{3/2}+O(\delta^{5/2}).
+    \]
+    <p>Consequently, \(\delta_{\ell+1}-\delta_\ell\approx-A\delta_\ell^{3/2}\), with \(A=2\sqrt2/(3\pi)\). Integrating this approximation gives \(\delta_\ell^{-1/2}\approx\delta_0^{-1/2}+A\ell/2\), and asymptotically \(1-c^\ell\sim9\pi^2/(2\ell^2)\). The forgetting is polynomial instead of exponential.</p>
+    <table>
+      <caption>Direct iteration of the displayed map, starting from \(c^0=0.5\).</caption>
+      <thead><tr><th scope="col">Layers</th><th scope="col">Correlation \(c^\ell\)</th><th scope="col">Remaining angular difference \(1-c^\ell\)</th></tr></thead>
+      <tbody>
+        <tr><td>0</td><td>0.500000</td><td>0.500000</td></tr>
+        <tr><td>10</td><td>0.897647</td><td>0.102353</td></tr>
+        <tr><td>100</td><td>0.996553</td><td>0.003447</td></tr>
+        <tr><td>1000</td><td>0.999957</td><td>0.000043</td></tr>
+      </tbody>
+    </table>
+    <div class="keyidea"><strong>What this example separates.</strong> Constant activation variance, constant mean-square gradient scale, and preservation of finite differences between inputs are three different statements. Critical ReLU satisfies the first two in this idealization while gradually losing the third.</div>
+  </section>
+
+  <section id="isometry">
+    <h2>7. What criticality does not guarantee</h2>
+    <p>Even perfect control of the average squared singular value of the full Jacobian \(J\) does not control its entire spectrum. For example, a matrix with half its singular values equal to \(\sqrt2\) and half equal to zero has mean squared singular value one, yet erases half the directions. <em>Dynamical isometry</em> asks for singular values concentrated near one, a much stronger condition. <a href="https://arxiv.org/abs/1711.04735">Pennington, Schoenholz, and Ganguli (2017)</a> study this distinction and show why the activation and the weight ensemble both matter.</p>
+    <p>Finite width introduces another distinction: a stable mean need not describe a typical network well if fluctuations grow with depth. For ReLU MLPs, <a href="https://arxiv.org/abs/1803.01719">Hanin and Rolnick (2018)</a> identify the sum of inverse layer widths as a control on activation-length fluctuations. At constant width this is \(L/n\). Taking width to infinity first suppresses an effect that can matter when depth grows alongside width.</p>
+    <p>These observations suggest a hierarchy of checks: second moments, input geometry, the spread of Jacobian gains, and variation across random seeds. Passing one does not eliminate the need to inspect the others.</p>
+  </section>
+
+  <section id="residual-setup">
+    <h2>8. Residual connections change the calculation</h2>
+    <p>For a residual network, use \(x^\ell\) for the stream and write</p>
+    \[
+      x^{\ell+1}=x^\ell+a_\ell F_\ell(x^\ell).
+    \]
+    <p>The old state is carried forward explicitly. To isolate the mechanism, consider the branch</p>
+    \[
+      F_\ell(x)=W^{\ell+1}\phi(x)+b^{\ell+1},
+    \]
+    <p>with the same independent Gaussian initialization as above and a centered Gaussian initial embedding \(x^0\). This choice ends the branch with a fresh centered affine map. Conditional on the incoming stream, \(\mathbb E[F_\ell(x^\ell)\mid x^\ell]=0\). It is a convenient model for deriving moment recursions, rather than a literal Transformer block.</p>
+    <p>Expanding the squared norm makes the role of this centering precise:</p>
+    \[
+      \|x+aF(x)\|^2
+      =\|x\|^2+2a\,x^\top F(x)+a^2\|F(x)\|^2.
+    \]
+    <p>The cross term vanishes in expectation at initialization under the conditional centering above. Thus the leading variance increment is quadratic in the multiplier. This conclusion uses both the architecture and the randomness; it is not an algebraic consequence of having a skip connection.</p>
+    <div class="remark"><strong>Activation order matters.</strong> The branch \(W\phi(x)\) used here is centered by the final random matrix. A branch \(\phi(Wx)\) generally is not. The latter is the setting motivating <a href="tensor-programs-vi.html#mean-subtraction">mean subtraction in the TP VI note</a>. Their detailed covariance maps differ.</div>
+  </section>
+
+  <section id="residual-moments">
+    <h2>9. Adding covariance instead of replacing it</h2>
+    <p>Apply the preceding expansion to both a single stream and a pair of streams. In the wide Gaussian limit of this model, the functions \(V\) and \(K\) defined above give</p>
+    \[
+      \boxed{q^{\ell+1}=q^\ell+a_\ell^2V(q^\ell),\qquad
+      k^{\ell+1}=k^\ell+a_\ell^2K(q^\ell,c^\ell).}
+    \]
+    <p>An MLP replaces its old covariance by the transformed covariance. A residual network adds a small transformed covariance to what was already there. In particular, positive branch variance generally makes \(q^\ell\) grow; we should not impose the MLP’s fixed-point equation \(q_*=V(q_*)\) on this residual stream.</p>
+    <p>For equal-norm inputs, dividing the two recursions gives</p>
+    \[
+      c^{\ell+1}-c^\ell
+      =\frac{a_\ell^2\bigl[K(q^\ell,c^\ell)-c^\ell V(q^\ell)\bigr]}
+      {q^\ell+a_\ell^2V(q^\ell)}.
+    \]
+    <p>There are two ways for this change to be small: use a small branch multiplier, or have the residual stream large relative to the new branch. The second can slow angular changes while allowing norms to grow. This is another reason to keep \(q\) and \(c\) separate.</p>
+    <p>For a deeper branch such as \(W_2\phi(W_1x)\), the same covariance-addition argument applies at initialization when the final random matrix supplies conditional centering. Its internal covariance calculation changes \(V\) and \(K\). Attention and normalization require their own corresponding calculation.</p>
+  </section>
+
+  <section id="residual-budget">
+    <h2>10. The sum of squared residual multipliers</h2>
+    <p>For the bias-free ReLU branch above, put \(\kappa=\sigma_w^2/2\). Then \(V(q)=\kappa q\), so the variance recursion is exactly solvable:</p>
+    \[
+      \frac{q^L}{q^0}=\prod_{\ell=0}^{L-1}(1+\kappa a_\ell^2),
+      \qquad
+      \log\frac{q^L}{q^0}
+      =\sum_\ell\log(1+\kappa a_\ell^2).
+    \]
+    <p>For small multipliers, this logarithm is approximately \(\kappa\sum_\ell a_\ell^2\). More generally it is bounded above by that quantity. Define</p>
+    \[
+      S_L=\sum_{\ell=0}^{L-1}a_\ell^2.
+    \]
+    <p>For a uniform multiplier \(a_\ell=A L^{-\alpha}\), we have \(S_L=A^2L^{1-2\alpha}\). The consequences are visible without any training calculation:</p>
+    <div class="table-scroll" role="region" aria-label="Residual initialization scaling" tabindex="0">
+      <table>
+        <thead><tr><th scope="col">Multiplier</th><th scope="col">\(S_L\)</th><th scope="col">ReLU stream variance \(q^L/q^0\)</th></tr></thead>
+        <tbody>
+          <tr><td>\(A\)</td><td>\(A^2L\)</td><td>\((1+\kappa A^2)^L\): exponential growth.</td></tr>
+          <tr><td>\(A/\sqrt L\)</td><td>\(A^2\)</td><td>\(\to e^{\kappa A^2}\): finite accumulated random effect.</td></tr>
+          <tr><td>\(A/L\)</td><td>\(A^2/L\)</td><td>\(\to1\): initial random residual effect vanishes.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Bounded \(S_L\) is the central scaling condition in <a href="https://proceedings.mlr.press/v130/hayou21a/hayou21a.pdf">Stable ResNet</a>, under that paper’s assumptions. It also accommodates nonuniform, square-summable branch multipliers. This is the variance-level version of the \(\sqrt L\,L^{-\alpha}\) argument in the <a href="tensor-programs-vi.html#two-laws">TP VI note</a>.</p>
+    <p>“Finite” is an asymptotic statement: a very large fixed \(A\) can still give an unusably large \(e^{\kappa A^2}\). Choosing a depth exponent removes systematic growth with model size; the remaining multiplier is still a hyperparameter.</p>
+  </section>
+
+  <section id="residual-correlations">
+    <h2>11. A worked residual example: slowing the correlation map</h2>
+    <p>For the same ReLU model, \(K(q,c)=\kappa q C_{\mathrm{ReLU}}(c)\). Therefore</p>
+    \[
+      \boxed{c^{\ell+1}=c^\ell+\beta_\ell
+      \bigl[C_{\mathrm{ReLU}}(c^\ell)-c^\ell\bigr],\qquad
+      \beta_\ell=\frac{\kappa a_\ell^2}{1+\kappa a_\ell^2}.}
+    \]
+    <p>The MLP takes a full step through its correlation map at every layer. This residual network takes a fraction \(\beta_\ell\) of that step. Correlation still increases, but more slowly. With \(\kappa=1\), \(L=1000\), and \(c^0=0.5\), direct iteration gives:</p>
+    <table>
+      <caption>Initialization only; every row uses the same ReLU branch and initial correlation.</caption>
+      <thead><tr><th scope="col">Residual multiplier</th><th scope="col">Final correlation</th><th scope="col">Variance ratio</th></tr></thead>
+      <tbody>
+        <tr><td>\(1\)</td><td>0.999831</td><td>\(2^{1000}\)</td></tr>
+        <tr><td>\(1/\sqrt L\)</td><td>0.593163</td><td>\(\approx2.717\)</td></tr>
+        <tr><td>\(1/L\)</td><td>0.500109</td><td>\(\approx1.001\)</td></tr>
+      </tbody>
+    </table>
+    <p>For small steps, introduce an accumulated coordinate \(\tau_\ell=\sum_{j&lt;\ell}\beta_j\). The recurrence is then an Euler approximation to</p>
+    \[
+      \frac{dc}{d\tau}=C_{\mathrm{ReLU}}(c)-c.
+    \]
+    <p>With \(a=A/\sqrt L\), increasing \(L\) refines the discretization of a finite interval \(\tau_L\approx\kappa A^2\). It does not keep running this correlation evolution for longer and longer. With \(a=A/L\), the initialization interval itself shrinks to zero. This explains the table: the latter stack initially preserves its input geometry almost unchanged.</p>
+    <div class="remark"><strong>Two kinds of smoothness.</strong> This ODE describes a deterministic <em>correlation statistic</em>. Individual feature coordinates can still have diffusion-like paths at \(1/\sqrt L\). A smooth covariance evolution does not imply the smooth feature trajectory discussed in CompleteP.</div>
+    <p>Likewise, the unscaled row’s correlation approaching one does not imply that its absolute distance vanishes: \(d_L^2=2q^L(1-c^L)\) also contains an exploding \(q^L\). “Becoming parallel” and “becoming close” coincide only when the norm scale is controlled.</p>
+  </section>
+
+  <section id="residual-gradients">
+    <h2>12. Identity paths and gradient propagation</h2>
+    <p>A residual block has Jacobian</p>
+    \[
+      J_\ell=I+a_\ell B_\ell,\qquad B_\ell=D F_\ell(x^\ell).
+    \]
+    <p>For a perturbation \(v\), expansion gives \(\|J_\ell v\|^2=\|v\|^2+2a_\ell v^\top B_\ell v+a_\ell^2\|B_\ell v\|^2\). In the centered isotropic initialization calculation, the cross term averages to zero. If the branch’s mean-square gain is \(\chi_{F,\ell}\), the block gain is consequently</p>
+    \[
+      1+a_\ell^2\chi_{F,\ell},
+      \qquad
+      \frac{g_0}{g_L}\approx
+      \prod_{\ell=0}^{L-1}(1+a_\ell^2\chi_{F,\ell}).
+    \]
+    <p>The backward expression again uses the mean-field independence approximation. For our ReLU example, \(\chi_{F,\ell}=\kappa\), giving the same product as the forward variance. The identity path supplies the one; residual sensitivity still accumulates. An unscaled branch with He variance has gain two per block in this model, not one.</p>
+    <p>This also clarifies why residual criticality is not obtained by simply imposing the MLP equation \(\chi=1\) on each branch. The relevant product contains \(1+a^2\chi_F\). If branch gains stay bounded, bounded \(S_L\) keeps this average product bounded. It does not guarantee every singular value is well conditioned.</p>
+    <p>Activation choice matters. In our model a bounded activation satisfies \(V(q)\leq\sigma_w^2\|\phi\|_\infty^2+\sigma_b^2\), so even unscaled variance grows at most linearly; ReLU instead makes \(V(q)\) proportional to \(q\). <a href="https://arxiv.org/html/1712.08969v1#S4">Yang and Schoenholz</a> show activation-dependent polynomial and subexponential behavior in their residual architectures, with exponential gradient growth still possible for ReLU. “Skip connections put every network safely at the edge of chaos” is too broad.</p>
+  </section>
+
+  <section id="normalization">
+    <h2>13. Centering, normalization, and the location of the skip</h2>
+    <h3>A nonzero mean changes the power counting</h3>
+    <p>If a branch contributes a persistent mean \(m\mathbf1\), that contribution accumulates like \(m\sum_\ell a_\ell\). With \(a=A/\sqrt L\), this is \(Am\sqrt L\), even though \(S_L\) is bounded. The quadratic variance argument controls centered random increments; it cannot control an order-one coherent mean. This is precisely why <a href="tensor-programs-vi.html#mean-subtraction">TP VI centers its post-activation branches</a>. After training, even zero coordinate mean does not rule out correlation with the stream or coherent learned directions.</p>
+    <h3>Pre-normalization does not normalize the residual stream itself</h3>
+    <p>In \(x^{\ell+1}=x^\ell+a_\ell F_\ell(\operatorname{LN}(x^\ell))\), LayerNorm regulates what the branch sees. The stream still adds a new term. If the centered branch has approximately constant variance \(v\), its initialization recursion is \(q^L\approx q^0+vS_L\), so unscaled branches can still make the stream grow with depth. Normalization also changes the branch Jacobian; the unnormalized ReLU formulas cannot simply be reused.</p>
+    <h3>The identity must remain an identity</h3>
+    <p>Applying an activation or normalization <em>after</em> the residual addition gives a Jacobian of the form \(D\psi\,(I+aB)\), so the direct route is multiplied by \(D\psi\) too. This placement issue motivates the identity-path analysis of <a href="https://arxiv.org/abs/1603.05027">He et al. (2016)</a>. For Transformers, <a href="https://arxiv.org/abs/2002.04745">Xiong et al. (2020)</a> analyze how pre-LN and post-LN affect initialization gradients. Attention adds token-to-token covariance as well; a two-input scalar recursion is an explanatory model, not a complete Transformer theory.</p>
+  </section>
+
+  <section id="tensor-programs">
+    <h2>14. Connecting initialization to Tensor Programs IV–VI</h2>
+    <p>The connection to <a href="tensor-programs-iv-v.html#two-laws">TP IV and V</a> starts with the same law-of-large-numbers substitution: an empirical average over neurons becomes an expectation of a representative coordinate. Information propagation uses it for random initialization. Tensor Programs supplies machinery for tracking the richer dependencies that arise when training reuses weights and aligns updates with features. A stable initial covariance kernel does not determine whether that kernel subsequently learns.</p>
+    <p>There is a useful parallel with the residual calculations. At initialization, centering removed a cross term and left a contribution proportional to \(a^2\). Training produces correlated updates, whose direct residual effect is proportional to \(a\Delta\theta\). With width factors suppressed,</p>
+    \[
+      a=L^{-\alpha},\qquad \Delta\theta=O(L^{-\gamma}),
+      \qquad
+      \underbrace{L a^2}_{\text{random variance}}=L^{1-2\alpha},
+      \qquad
+      \underbrace{L a\Delta\theta}_{\text{coherent learning}}=O(L^{1-\alpha-\gamma}).
+    \]
+    <p>Bounded random accumulation gives \(\alpha\geq1/2\). Stable, nonvanishing first-order learning motivates \(\alpha+\gamma=1\). These are the <a href="tensor-programs-vi.html#critical-line">two balances in TP VI</a>. Initialization selects a range of possible scalings; an additional learning criterion selects a point within it.</p>
+    <div class="keyidea"><strong>Do not confuse the two comparisons.</strong> Information propagation compares <em>two inputs at the same layer</em>, such as \(x^\ell(a)\) and \(x^\ell(b)\). TP VI’s feature diversity compares <em>one input at nearby depths</em>, such as \(x^{\ell+k}(a)\) and \(x^\ell(a)\). A near-identity stack can preserve distinctions between inputs while making nearby layers very similar.</div>
+    <p>Depth-\(\mup\) chooses \(\alpha=\gamma=1/2\) to retain nonvanishing random variation across depth. That is stronger than requiring good signal propagation. The residual table above shows that \(1/L\) can preserve initial geometry even more closely; it simply performs less random transformation before learning.</p>
+  </section>
+
+  <section id="completep">
+    <h2>15. Why CompleteP can prefer a smooth depth limit</h2>
+    <p><a href="completep.html#tp-vi">CompleteP</a> asks that learning continue to use nonlinear interactions inside a block. For a two-weight branch, expanding its change produces terms linear in \(\Delta W_1,\Delta W_2\) and a mixed term containing \(\Delta W_2\Delta W_1\). Along the first-order balance \(\Delta\theta=O(\eta L^{\alpha-1})\), their characteristic residual scales are</p>
+    \[
+      T_1=O(\eta/L),\qquad
+      T_2=O(\eta^2L^{\alpha-2}),\qquad
+      \frac{T_2}{T_1}=O(\eta L^{\alpha-1}),
+    \]
+    <p>assuming nonzero generic terms. For \(\alpha&lt;1\), depth suppresses the mixed interaction relative to the linear response. At \(\alpha=1\), this extra suppression disappears. The <a href="https://arxiv.org/html/2505.01618v4#S6">CompleteP criterion</a> thus favors \(a=1/L\) with depth-independent internal learning.</p>
+    <p>There is no contradiction with information propagation. At initialization, \(S_L=1/L\to0\), so the residual stack approaches the identity on its initial embedding. During training, \(L\) learned increments of size \(1/L\) can build a finite transformation. With fractional depth \(\lambda=\ell/L\), bounded learned branches suggest a smooth evolution in \(\lambda\), while their dependence on trainable parameters remains nonlinear.</p>
+    <p>This resembles the <a href="tensor-programs-iv-v.html#init-w3">small initial readout in μP</a>: a random contribution can vanish in the size limit while a correlated learned contribution survives. Demanding maximal random activity at initialization would miss that possibility.</p>
+    <p>These different selection criteria motivate treating initial input geometry, variation across depth, and nonlinear learning within blocks as distinct design questions. The next section explains what each viewpoint contributes to the others.</p>
+  </section>
+
+  <section id="synthesis">
+    <h2>16. How the theories fit together</h2>
+    <p>The higher-level problem is to make a larger network remain a useful learning system. That requires both a representation through which signals can travel and parameter updates that can improve it. Deep information propagation and the parametrization papers examine different ways this can fail. Their scopes overlap: TP IV–VI and CompleteP already include initialization stability, and the Tensor Programs machinery can also describe initialization statistics. The value of the information-propagation viewpoint is the explicit diagnosis of signal geometry and sensitivity, beyond merely checking their order of magnitude.</p>
+
+    <h3>What signal propagation adds to a scaling prescription</h3>
+    <p>A width exponent does not fix a network’s effective usable depth. For example, \(W_{ij}\sim\mathcal N(0,\sigma_w^2/n)\) has the same width scaling for every fixed \(\sigma_w\), yet changing this constant can change the correlation map and the gradient multiplier \(\chi\). An MLP can be well scaled as \(n\to\infty\) at fixed \(L\), while its sensitivity is multiplied by \(\chi^L\) and becomes extremely small at the depth of interest. DIP’s <a href="#edge-of-chaos">depth scales</a> help expose this distinction. For residual networks, the analogous example is \(a=A/\sqrt L\): the depth exponent controls accumulation, but the finite factor \(e^{\kappa A^2}\) in our <a href="#residual-budget">worked example</a> can still be very large.</p>
+    <p>Similarly, finite feature norms and nonvanishing feature updates do not by themselves ensure that two inputs remain distinguishable. CompleteP’s preservation of nonlinear parameter interactions does not by itself establish that those interactions produce useful geometry for a task. The \(q,c,d\) diagnostics provide another check. They can help identify poor initialization constants or architectural choices within a scaling family, although they do not determine the best trained representation. Control of the full Jacobian spectrum requires the additional <a href="#isometry">dynamical-isometry analysis</a>, beyond DIP’s scalar mean-field factors.</p>
+
+    <h3>What the learning theories add to signal propagation</h3>
+    <p>Conversely, the very same initialized network can be trained with learning rates that freeze its hidden features, make them change at order one, or destabilize them as width grows. Its initial \(q\), \(c\), and Jacobian cannot distinguish these choices. <a href="tensor-programs-iv-v.html#maximal">TP IV</a> classifies feature learning under width scaling; <a href="tensor-programs-iv-v.html#transfer">TP V</a> connects the resulting parametrization to tuning on smaller models. These contributions address something that good initial propagation alone cannot select: how parameter updates should scale, including the distinct roles of input, hidden, and output layers.</p>
+    <p>The same gap appears in depth. A bounded sum \(\sum_\ell a_\ell^2\) controls centered random accumulation at initialization, but does not prescribe the coherent learned sum \(\sum_\ell a_\ell\Delta\theta^\ell\). <a href="tensor-programs-vi.html#critical-line">TP VI</a> analyzes this training balance and selects a limit using feature diversity. <a href="completep.html#complete">CompleteP</a> examines the further possibility that features move while multi-operation blocks become linearized in their own parameter updates. Initialization statistics cannot detect that loss of nonlinear learning.</p>
+
+    <h3>How to use the contributions together</h3>
+    <p>A useful workflow is to choose an architecture and a candidate width-and-depth parametrization together, examine signal propagation at the intended depths, and then check the scale and nonlinear character of actual training updates. Signal propagation helps assess the initialization constants and geometry; the learning theories constrain how the optimizer and forward multipliers should change with model size; transfer experiments test whether those choices remain useful. A failure at any stage can motivate revisiting the earlier choices.</p>
+    <p>This is not a hierarchy in which CompleteP satisfies every criterion of TP VI. Within the scaling family considered here, preserving maximal random variation across depth and preserving nonlinear interactions inside multi-layer blocks favor different exponents. Nor should the MLP condition \(\chi=1\) be imposed indiscriminately on residual branches, whose Jacobians contain an identity term. The combined perspective makes these choices explicit; it does not supply a universal theorem of optimal hyperparameters, fast optimization, or generalization for every finite network.</p>
+    <div class="keyidea"><strong>What each viewpoint protects.</strong> Signal propagation protects the ability to transmit differences and sensitivities. Feature-learning parametrizations protect the ability to change representations as models grow. Neither property alone establishes that the learned changes solve the task.</div>
+  </section>
+
+  <section id="checks">
+    <h2>17. What to measure in an actual network</h2>
+    <p>The derivations suggest a compact diagnostic sequence, using several depths and random seeds:</p>
+    <ol>
+      <li><em>Measure both the stream and the branch.</em> Track coordinate means and RMS values. For a residual network, also measure \(a_\ell F_\ell(x^\ell)\) and its inner product with the stream; a large cross term invalidates a variance-only explanation.</li>
+      <li><em>Propagate pairs of inputs.</em> Track \(q_a,q_b,c_{ab}\) and the actual distance. Use nearby and unrelated pairs. This distinguishes shrinking norms, increasing alignment, and excessive local sensitivity.</li>
+      <li><em>Probe the Jacobian.</em> Compare the gains of several random tangent or backward vectors. For manageable models, inspect singular values too. An average gain near one can hide badly distorted directions.</li>
+      <li><em>Then take training steps.</em> Check feature changes, each block’s direct contribution, and the discrepancy from linearizing a multi-layer block in its parameters. These are the additional checks needed to connect initialization to μP and CompleteP.</li>
+    </ol>
+    <p>Stochastic layers need an explicit convention. The dropout result in <a href="https://arxiv.org/html/1611.01232#S3.SS1">Deep Information Propagation</a> uses independent masks for the two inputs: even identical inputs then receive different perturbations, and the \(c=1\) fixed point is lost. A correlation test with shared masks asks a different question. Likewise, a controlled mean-field initialization does not by itself establish training speed, generalization, or hyperparameter transfer.</p>
+  </section>
+
+  <section id="takeaway">
+    <h2>18. Five equations to remember</h2>
+    <div class="equation-summary">
+      \[
+        \text{MLP variance:}\qquad q^{\ell+1}=V(q^\ell),
+      \]
+      \[
+        \text{MLP local sensitivity:}\qquad
+        \chi=\sigma_w^2\mathbb E[\phi'(\sqrt{q_*}Z)^2],
+      \]
+      \[
+        \text{Input separation:}\qquad d_\ell^2=2q^\ell(1-c^\ell),
+      \]
+      \[
+        \text{Centered residual variance:}\qquad
+        q^{\ell+1}=q^\ell+a_\ell^2V(q^\ell),
+      \]
+      \[
+        \text{Depth balances:}\qquad
+        \sum_\ell a_\ell^2=O(1),\qquad
+        \sum_\ell a_\ell\Delta\theta^\ell=O(1).
+      \]
+    </div>
+    <p>The last sum is schematic coherent power counting, with a nonvanishing learning effect desired. The central distinction is between propagating an existing signal and learning a new transformation of it. Residual connections make these tasks separable: the identity path carries the signal, while the scaled branch controls how much random or learned change is added.</p>
+  </section>
+
+  <section id="references">
+    <h2>References</h2>
+    <ol class="refs">
+      <li>Ben Poole, Subhaneil Lahiri, Maithra Raghu, Jascha Sohl-Dickstein, and Surya Ganguli. <em>Exponential expressivity in deep neural networks through transient chaos</em>. NeurIPS 2016. <a href="https://arxiv.org/abs/1606.05340">Paper</a>. Mean-field variance and correlation maps.</li>
+      <li>Samuel S. Schoenholz, Justin Gilmer, Surya Ganguli, and Jascha Sohl-Dickstein. <em>Deep Information Propagation</em>. ICLR 2017. <a href="https://arxiv.org/abs/1611.01232">Paper</a>. Depth scales, backward propagation, and dropout.</li>
+      <li>Greg Yang and Samuel S. Schoenholz. <em>Mean Field Residual Networks: On the Edge of Chaos</em>. NeurIPS 2017. <a href="https://arxiv.org/abs/1712.08969">Paper</a>. Activation-dependent residual dynamics.</li>
+      <li>Soufiane Hayou, Eugenio Clerico, Bobby He, George Deligiannidis, Arnaud Doucet, and Judith Rousseau. <em>Stable ResNet</em>. AISTATS 2021. <a href="https://proceedings.mlr.press/v130/hayou21a.html">Paper</a>. Residual scaling and bounded sums of squared multipliers.</li>
+      <li>Jeffrey Pennington, Samuel S. Schoenholz, and Surya Ganguli. <em>Resurrecting the sigmoid in deep learning through dynamical isometry: theory and practice</em>. NeurIPS 2017. <a href="https://arxiv.org/abs/1711.04735">Paper</a>.</li>
+      <li>Boris Hanin and David Rolnick. <em>How to Start Training: The Effect of Initialization and Architecture</em>. NeurIPS 2018. <a href="https://arxiv.org/abs/1803.01719">Paper</a>. Finite-width fluctuations and residual architectures.</li>
+      <li>Kaiming He, Xiangyu Zhang, Shaoqing Ren, and Jian Sun. <em>Identity Mappings in Deep Residual Networks</em>. ECCV 2016. <a href="https://arxiv.org/abs/1603.05027">Paper</a>.</li>
+      <li>Ruibin Xiong et al. <em>On Layer Normalization in the Transformer Architecture</em>. ICML 2020. <a href="https://arxiv.org/abs/2002.04745">Paper</a>.</li>
+      <li>Greg Yang et al. <em>Tensor Programs IV</em>, <em>V</em>, and <em>VI</em>. <a href="https://proceedings.mlr.press/v139/yang21c.html">IV</a> · <a href="https://arxiv.org/abs/2203.03466">V</a> · <a href="https://arxiv.org/abs/2310.02244">VI</a>.</li>
+      <li>Nolan Dey et al. <em>Don’t be lazy: CompleteP enables compute-efficient deep transformers</em>. NeurIPS 2025, corrected January 2026 version. <a href="https://arxiv.org/abs/2505.01618v4">Paper</a>.</li>
+    </ol>
+    <p class="small">These are expository working notes. Numerical tables are iterations of the displayed infinite-width ReLU recursions, not measurements of trained networks. The residual worked example fixes the activation order and centering explicitly; its exact formulas should not be transferred unchanged to other architectures.</p>
+    <p class="small">Related notes: <a href="tensor-programs-iv-v.html">Tensor Programs IV &amp; V</a> · <a href="tensor-programs-vi.html">Tensor Programs VI</a> · <a href="completep.html">CompleteP</a>.</p>
+  </section>
+</main>
+
+
+<footer>
+  <a href="../../index.html">dmartinezt.github.io</a> · research notes
+</footer>
+</body>
+</html>

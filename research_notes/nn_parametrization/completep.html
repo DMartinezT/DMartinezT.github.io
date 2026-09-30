@@ -1,0 +1,597 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#000000">
+  <script src="../../theme.js"></script>
+  <meta name="description" content="Expository research notes on CompleteP: why inverse-depth residual scaling preserves nonlinear learning inside deep networks, and how to scale AdamW hyperparameters across width and depth.">
+  <title>CompleteP: keeping deep networks fully nonlinear during learning</title>
+  <link rel="stylesheet" href="../../styles.css">
+  <script src="../../assets/math-network.js" defer></script>
+  <script src="../../background.js" defer></script>
+  <style>
+    :root {
+      --bg: var(--background);
+      --ink: var(--text);
+      --rule: var(--line);
+      --link: var(--blue);
+      --box-bg: var(--surface);
+      --box-border: var(--line);
+      --code-bg: var(--surface);
+      --max: 790px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: 0; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Georgia, "Times New Roman", Times, serif;
+      font-size: 18px;
+      line-height: 1.68;
+      -webkit-font-smoothing: antialiased;
+    }
+    main, header, footer {
+      width: min(var(--max), calc(100% - 38px));
+      margin-left: auto;
+      margin-right: auto;
+    }
+    header { padding: 42px 0 24px; border-bottom: 1px solid var(--rule); }
+    .site-link {
+      display: inline-block;
+      margin-bottom: 30px;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 0.82rem;
+      letter-spacing: .02em;
+    }
+    h1, h2, h3 {
+      font-family: Georgia, "Times New Roman", Times, serif;
+      line-height: 1.22;
+      font-weight: 600;
+      scroll-margin-top: 18px;
+    }
+    h1 { font-size: clamp(2.15rem, 7vw, 3.45rem); margin: 0 0 12px; letter-spacing: -0.025em; }
+    h2 { font-size: 1.62rem; margin: 2.7em 0 .65em; }
+    h3 { font-size: 1.22rem; margin: 2em 0 .45em; }
+    p { margin: 1em 0; }
+    .subtitle { font-size: 1.18rem; color: var(--muted); max-width: 690px; margin: 0 0 12px; }
+    .meta {
+      color: var(--muted);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: .84rem;
+    }
+    main { padding: 28px 0 74px; }
+    a { color: var(--link); text-decoration: underline; text-underline-offset: 0.16em; }
+    a:hover { text-decoration-thickness: 2px; }
+    .toc {
+      border-bottom: 1px solid var(--rule);
+      padding: 0 0 24px;
+      margin-bottom: 34px;
+    }
+    .toc strong {
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: .86rem;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+    .toc ol { margin: 10px 0 0 1.25em; padding: 0; }
+    .toc li { margin: 2px 0; }
+    .toc a { text-decoration: none; }
+    .lead { font-size: 1.08em; }
+    .keyidea, .remark {
+      margin: 1.55em 0;
+      padding: 14px 18px;
+      border-left: 3px solid var(--box-border);
+      background: var(--box-bg);
+    }
+    .keyidea strong, .remark strong {
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: .86rem;
+      letter-spacing: .035em;
+      text-transform: uppercase;
+    }
+    .equation-summary {
+      margin: 1.8em 0;
+      padding: 17px 20px;
+      border: 1px solid var(--box-border);
+      background: var(--box-bg);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1.35em 0 1.7em;
+      font-size: .96em;
+    }
+    th, td { border-bottom: 1px solid var(--rule); padding: 9px 10px; text-align: left; vertical-align: top; }
+    th { font-weight: 600; }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: .88em;
+      background: var(--code-bg);
+      padding: .08em .28em;
+      border-radius: 3px;
+    }
+    mjx-container[display="true"] { overflow-x: auto; overflow-y: hidden; padding: .25em 0; max-width: 100%; }
+    .table-scroll { overflow-x: auto; margin: 1.35em 0 1.7em; }
+    .table-scroll table { margin: 0; min-width: 540px; }
+    caption { text-align: left; color: var(--muted); font-size: .9em; margin-bottom: .6em; }
+    a:focus-visible, button:focus-visible, .table-scroll:focus-visible { outline: 2px solid var(--link); outline-offset: 4px; }
+    @media print {
+      mjx-container[display="true"], .table-scroll { overflow: visible; }
+      .table-scroll table { min-width: 0; }
+    }
+    .refs { font-size: .94em; }
+    .refs li { margin-bottom: .75em; }
+    .small { color: var(--muted); font-size: .93em; }
+    footer {
+      border-top: 1px solid var(--rule);
+      padding: 22px 0 40px;
+      color: var(--muted);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: .82rem;
+    }
+    @media (max-width: 620px) {
+      body { font-size: 17px; }
+      header { padding-top: 28px; }
+      .site-link { margin-bottom: 22px; }
+      th, td { padding-left: 6px; padding-right: 6px; }
+    }
+    @media print {
+      :root { --bg: #fff; --ink: #000; --muted: #444; --rule: #bbb; --link: #000; --box-bg: #fff; --box-border: #888; }
+      body { font-size: 11.5pt; }
+      .site-link, .toc, .math-background { display: none; }
+      header { padding-top: 0; }
+      main, header, footer { width: 100%; }
+      a { text-decoration: none; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+    }
+  </style>
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(','\\)']],
+        displayMath: [['\\[','\\]']],
+        macros: {
+          mup: '\\mu\\mathrm{P}',
+          E: '\\mathbb{E}'
+        }
+      },
+      options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+    };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+</head>
+<body>
+<div class="math-background" aria-hidden="true"><canvas id="math-background"></canvas></div>
+<header>
+  <div class="note-toolbar">
+    <a class="site-link" href="../../index.html#notes">← Research notes</a>
+    <div class="theme-controls" role="group" aria-label="Appearance" hidden>
+      <button class="theme-toggle" data-theme-toggle type="button" aria-label="Switch to night mode"><span class="theme-icon" data-theme-icon aria-hidden="true">☾</span><span data-theme-label>Night</span></button>
+      <button class="theme-auto" data-theme-auto type="button" aria-pressed="true" aria-label="Use local time for day and night" title="Follow local time: day from 7 a.m. to 7 p.m.">Auto</button>
+    </div>
+  </div>
+  <h1>CompleteP: keeping deep networks fully nonlinear during learning</h1>
+  <p class="subtitle">Why stable feature movement is not enough, how a two-weight residual block singles out \(1/L\) scaling, and what this means for width-and-depth hyperparameter transfer.</p>
+  <div class="meta">Research notes · 18 September 2026</div>
+</header>
+
+<main>
+  <nav class="toc" aria-label="Table of contents">
+    <strong>Contents</strong>
+    <ol>
+      <li><a href="#big-picture">The big picture</a></li>
+      <li><a href="#setup">Separating width, depth, and block depth</a></li>
+      <li><a href="#initialization">What initialization stability actually forces</a></li>
+      <li><a href="#critical-line">What a maximal residual update forces</a></li>
+      <li><a href="#missing-condition">Why moving features can still be lazy</a></li>
+      <li><a href="#two-weights">The two-weight calculation</a></li>
+      <li><a href="#higher-order">Why all nonlinear orders select \(\alpha=1\)</a></li>
+      <li><a href="#complete">What “complete” means</a></li>
+      <li><a href="#tp-vi">Reconciling CompleteP with Tensor Programs VI</a></li>
+      <li><a href="#optimizers">SGD versus Adam: scale the update first</a></li>
+      <li><a href="#width">Putting the width factors back</a></li>
+      <li><a href="#recipe">The practical AdamW scaling table</a></li>
+      <li><a href="#norm-bias">Why biases and LayerNorm have their own rules</a></li>
+      <li><a href="#decay-epsilon">Weight decay and Adam’s epsilon</a></li>
+      <li><a href="#transfer">What actually gets transferred</a></li>
+      <li><a href="#evidence">What the experiments establish</a></li>
+      <li><a href="#checks">How to check an implementation</a></li>
+      <li><a href="#takeaway">Five equations to remember</a></li>
+    </ol>
+  </nav>
+
+  <p class="lead">The cleanest way I have found to understand CompleteP is to start from the <a href="tensor-programs-vi.html#limitations">block-depth limitation at the end of the TP VI note</a>. A deep residual network can have stable activations and order-one feature movement while the trainable layers <em>inside each block</em> lose their nonlinear interactions. CompleteP asks that those interactions survive too. This changes which depth scaling we should prefer.</p>
+  <p class="small">These notes follow Dey et al., <a href="https://arxiv.org/abs/2505.01618v4"><em>Don’t be lazy: CompleteP enables compute-efficient deep transformers</em></a>, using the corrected January 2026 version. The derivations below unpack its scaling arguments; they are not a general convergence proof for Transformer training.</p>
+
+  <section id="big-picture">
+    <h2>1. The big picture</h2>
+    <p>The <a href="tensor-programs-iv-v.html">TP IV &amp; V note</a> asks how to preserve feature learning as width grows. The <a href="tensor-programs-vi.html">TP VI note</a> asks the corresponding question as the number of residual blocks grows. CompleteP adds a more local test: when a block contains several trainable operations, does training still use their nonlinear composition?</p>
+    <p>The paper organizes the problem around three requirements:</p>
+    <ol>
+      <li><em>Stable initialization:</em> features and outputs must not blow up with model size.</li>
+      <li><em>Maximal residual stream updates:</em> training must produce a finite, nonvanishing total feature change, with every block contributing at the appropriate scale.</li>
+      <li><em>Complete feature learning:</em> nonlinear dependence on trainable parameters must not disappear merely because the network becomes wider or deeper.</li>
+    </ol>
+    <p>The first two leave a family of residual scalings \(L^{-\alpha}\), with \(1/2\leq\alpha\leq1\). The third singles out \(\alpha=1\) within this family. See the paper’s <a href="https://arxiv.org/html/2505.01618v4#S6">Section 6</a>.</p>
+    <div class="keyidea"><strong>Key idea.</strong> CompleteP makes each block’s contribution to the residual stream small, while keeping learning <em>inside</em> that block at order one with respect to depth. The smallness belongs in the residual multiplier.</div>
+  </section>
+
+  <section id="setup">
+    <h2>2. Separating width, depth, and block depth</h2>
+    <p>Write a residual network as</p>
+    \[
+      h^{\ell+1}=h^\ell+L^{-\alpha}F_\ell(h^\ell;\theta^\ell),
+      \qquad h^\ell\in\mathbb R^n.
+    \]
+    <p>There are three different sizes here. The width is \(n\). The number of residual blocks is \(L\). The <em>block depth</em> is the number of composed trainable operations inside \(F_\ell\), which stays fixed as \(L\) increases. A Transformer MLP branch such as</p>
+    \[
+      F_\ell(h)=W_2^\ell\phi\!\left(W_1^\ell\operatorname{LN}(h)\right)
+    \]
+    <p>already has block depth two.</p>
+    <p>First suppress the width factors and analyze powers of \(L\). Write the characteristic internal update scale as</p>
+    \[
+      \Delta\theta^\ell=O(L^{-\gamma}).
+    \]
+    <p>This is a depth-scaling shorthand in width-normalized coordinates. It does not say that every entry of a wide matrix moves by order one. We restore the entrywise width factors in <a href="#width">Section 11</a>.</p>
+    <div class="remark"><strong>Conventions.</strong> Keep the number of training steps and the base learning rate fixed while taking the size limit. Feature sizes below mean typical coordinate or root-mean-square magnitudes, rather than squared magnitudes. Counting a Transformer layer as two residual branches changes constant factors, not the depth exponents.</div>
+  </section>
+
+  <section id="initialization">
+    <h2>3. What initialization stability actually forces</h2>
+    <p>At initialization, assume centered residual outputs with order-one coordinate variance and fresh randomness across blocks. The random contributions accumulate on the scale</p>
+    \[
+      \sqrt L\,L^{-\alpha}=L^{1/2-\alpha}.
+    \]
+    <p>Equivalently, their accumulated variance is of order \(L^{1-2\alpha}\). Stability therefore requires</p>
+    \[
+      \boxed{\alpha\geq\frac12.}
+    \]
+    <p>At \(\alpha=1/2\), the residual randomness survives at order one. At \(\alpha=1\), it vanishes like \(L^{-1/2}\). But the identity path still carries the order-one input representation, so the residual stream itself need not vanish.</p>
+    <p>This is the first distinction from the TP VI selection principle: <em>stable initialization does not require a nonvanishing random contribution from the entire residual stack</em>. CompleteP accepts an initially near-identity stack so that its blocks can subsequently learn strongly.</p>
+    <p>The centering assumption matters. An order-one nonzero mean can accumulate like \(L\), so a variance calculation alone cannot justify arbitrary residual architectures. The paper’s <a href="https://arxiv.org/html/2505.01618v4#A3.SS1">Appendix C.1</a> gives the signal-propagation calculation for its setup.</p>
+  </section>
+
+  <section id="critical-line">
+    <h2>4. What a maximal residual update forces</h2>
+    <p>The direct first-order change from updating one block is schematically</p>
+    \[
+      \Delta_{\theta^\ell}h^{\ell+1}
+      \approx L^{-\alpha}D_\theta F_\ell\,\Delta\theta^\ell
+      =O(L^{-\alpha-\gamma}).
+    \]
+    <p>Training updates are correlated through the data and the backward signal. Their learned contributions can accumulate coherently across depth, giving</p>
+    \[
+      L\cdot L^{-\alpha-\gamma}=L^{1-\alpha-\gamma}.
+    \]
+    <p>The critical balance is therefore the same one used in the TP VI note:</p>
+    \[
+      \boxed{\alpha+\gamma=1,\qquad
+      \Delta\theta^\ell=O(L^{\alpha-1}).}
+    \]
+    <p>Every block contributes an order-\(1/L\) feature increment, so \(L\) blocks can jointly produce an order-one change. Requiring bounded internal updates gives \(\gamma\geq0\), hence \(\alpha\leq1\). Together with initialization stability, this leaves</p>
+    \[
+      \frac12\leq\alpha\leq1.
+    \]
+    <div class="keyidea"><strong>The remaining freedom.</strong> At \(\alpha=1/2\), a relatively large branch multiplier is paired with small internal updates. At \(\alpha=1\), a smaller branch multiplier permits depth-independent internal updates. Both have the same first-order residual effect.</div>
+  </section>
+
+  <section id="missing-condition">
+    <h2>5. Why moving features can still be lazy</h2>
+    <p>Fix a block’s input \(h\) and expand its output around its initial parameters:</p>
+    \[
+      F(h;\theta_0+\Delta\theta)
+      =F(h;\theta_0)+D_\theta F\,\Delta\theta
+      +\frac12D_\theta^2F[\Delta\theta,\Delta\theta]+\cdots.
+    \]
+    <p>For \(\alpha&lt;1\), the depth factor in \(\Delta\theta\) tends to zero. Each extra power of the update then introduces another vanishing factor. A block can change through its first derivative while its higher-order parameter interactions become negligible.</p>
+    <p>That does not imply that the entire residual network is a fixed kernel model. Its input to each block may still change substantially through upstream training. The defect is more specific: <em>conditional on a block’s input, learning inside that block approaches its parameter linearization</em>.</p>
+    <p>For \(W_2\phi(W_1h)\), we want the second matrix to learn how to use features that the first matrix is itself learning. A first-order approximation retains separate changes through \(W_1\) and \(W_2\), but drops the interaction between their learned changes. The next calculation isolates exactly that loss.</p>
+  </section>
+
+  <section id="two-weights">
+    <h2>6. The two-weight calculation</h2>
+    <p>Use the paper’s scalar toy block, with width one:</p>
+    \[
+      h^+=h+L^{-\alpha}w_2w_1h.
+    \]
+    <p>Although it is linear in \(h\), it is nonlinear in the <em>pair</em> \((w_1,w_2)\). Hold \(h\) fixed and update both weights. The exact output change is</p>
+    \[
+      \Delta h^+
+      =\underbrace{L^{-\alpha}h(w_2\Delta w_1+w_1\Delta w_2)}_{T_1}
+      +\underbrace{L^{-\alpha}h\,\Delta w_2\Delta w_1}_{T_2}.
+    \]
+    <p>Here \(T_1\) is the linearized update, and \(T_2\) is the interaction that linearization discards. With order-one \(h,w_1,w_2\) and generic, non-cancelling updates of size \(\eta L^{\alpha-1}\),</p>
+    \[
+      T_1=\Theta(\eta L^{-1}),\qquad
+      T_2=\Theta(\eta^2L^{\alpha-2}).
+    \]
+    <p>Thus the useful diagnostic is a <em>relative</em> error:</p>
+    \[
+      \boxed{\frac{|T_2|}{|T_1|}=\Theta(\eta L^{\alpha-1}).}
+    \]
+    <table>
+      <thead><tr><th scope="col">Depth exponent</th><th scope="col">Nonlinear / linear contribution</th><th scope="col">As depth grows</th></tr></thead>
+      <tbody>
+        <tr><td>\(\alpha=1/2\)</td><td>\(\Theta(\eta/\sqrt L)\)</td><td>vanishes</td></tr>
+        <tr><td>\(\alpha=3/4\)</td><td>\(\Theta(\eta/L^{1/4})\)</td><td>vanishes, more slowly</td></tr>
+        <tr><td>\(\alpha=1\)</td><td>\(\Theta(\eta)\)</td><td>retains its depth scale</td></tr>
+      </tbody>
+    </table>
+    <p>At CompleteP, both terms carry the same \(1/L\) factor. The quadratic term is still smaller by a factor of the learning rate when \(\eta\) is small, but increasing depth does not suppress it further.</p>
+    <div class="remark"><strong>Why divide by the linear term?</strong> Every individual block must have a vanishing absolute effect as \(L\) grows. An absolute Taylor error approaching zero is therefore inconclusive. What matters is whether the nonlinear part vanishes <em>relative to that block’s own learning signal</em>.</div>
+    <p>This is the calculation in <a href="https://arxiv.org/html/2505.01618v4#S6">Section 6, equations (5)–(6)</a>, with the fixed base learning rate made explicit.</p>
+  </section>
+
+  <section id="higher-order">
+    <h2>7. Why all nonlinear orders select \(\alpha=1\)</h2>
+    <p>The same depth counting applies to a generic nonzero \(k\)-th order term in a fixed-depth block. Suppressing derivative constants and assuming the width normalization has already been handled,</p>
+    \[
+      T_k=O\!\left(\eta^kL^{-\alpha+k(\alpha-1)}\right).
+    \]
+    <p>Relative to the first-order scale \(\eta/L\),</p>
+    \[
+      \frac{T_k}{T_1}
+      =O\!\left(\eta^{k-1}L^{(k-1)(\alpha-1)}\right).
+    \]
+    <p>For every \(k&gt;1\), \(\alpha&lt;1\) introduces an additional depth-dependent suppression. At \(\alpha=1\), each surviving Taylor order has the same depth factor:</p>
+    \[
+      \boxed{T_k=O(\eta^k/L).}
+    \]
+    <p>“All orders survive” means that depth no longer forces them away. A particular derivative can still be zero, a small learning rate still suppresses high orders, and this power counting by itself does not prove convergence of an infinite Taylor series.</p>
+    <p>Combining the three requirements now selects</p>
+    \[
+      \boxed{\alpha=1,\qquad\gamma=0.}
+    \]
+    <p>This is the core CompleteP depth prescription: scale the branch by \(1/L\) and keep its internal feature-learning scale independent of depth.</p>
+  </section>
+
+  <section id="complete">
+    <h2>8. What “complete” means</h2>
+    <p>For a representation \(H\) and a selected parameter subset \(S\), compare the actual change from updating only \(S\) with the change predicted by linearization at initialization. Schematically, define</p>
+    \[
+      R_S=
+      \frac{\|\Delta_S H-\Delta_S H^{\mathrm{lin}}\|}
+           {\|\Delta_S H^{\mathrm{lin}}\|}.
+    \]
+    <p>Where the linear response is nonzero, \(R_S\to0\) detects laziness with respect to \(S\), provided \(H\) was nonlinear in that subset at finite size. Complete feature learning asks that no such nonlinear dependence be lost asymptotically for the relevant hidden representations and output.</p>
+    <p>The subset language matters. In the toy block, the map is already linear in \(w_1\) alone when \(w_2\) is fixed; it makes no sense to demand curvature there. The pair \(\{w_1,w_2\}\) is the subset with a nonlinear interaction to preserve.</p>
+    <div class="keyidea"><strong>Meaning of complete.</strong> Order-one movement somewhere in the network is insufficient. The criterion checks whether learning continues to use the nonlinear parameter dependencies that exist in the finite network.</div>
+    <p>The uniqueness claim concerns the paper’s scaling family and assumptions. It is not a claim that one literal implementation is the only possible parametrization for every architecture.</p>
+  </section>
+
+  <section id="tp-vi">
+    <h2>9. Reconciling CompleteP with Tensor Programs VI</h2>
+    <p>The apparent conflict is real and instructive. TP VI prefers \(1/\sqrt L\) because it preserves random variation across neighboring depths. CompleteP prefers \(1/L\) because it preserves nonlinear learning inside multi-layer blocks. These are different properties.</p>
+    <div class="table-scroll" role="region" aria-label="Comparison with Depth-μP" tabindex="0">
+      <table>
+        <thead><tr><th scope="col">Property</th><th scope="col">Depth-\(\mup\)</th><th scope="col">CompleteP</th></tr></thead>
+        <tbody>
+          <tr><td>Residual multiplier</td><td>\(L^{-1/2}\)</td><td>\(L^{-1}\)</td></tr>
+          <tr><td>Internal update’s depth factor</td><td>\(L^{-1/2}\)</td><td>\(1\)</td></tr>
+          <tr><td>Total initial residual randomness</td><td>\(O(1)\)</td><td>\(O(L^{-1/2})\)</td></tr>
+          <tr><td>Direct learned effect per block</td><td>\(O(1/L)\)</td><td>\(O(1/L)\)</td></tr>
+          <tr><td>Quadratic / linear update scale</td><td>\(O(\eta/\sqrt L)\)</td><td>\(O(\eta)\)</td></tr>
+          <tr><td>Selection principle</td><td>maximal feature diversity across depth</td><td>complete nonlinear feature learning</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>The clean TP VI optimality result concerns its one-matrix residual blocks. Its multi-layer-block limitation is precisely where the two-weight calculation becomes relevant. CompleteP revisits which criterion should guide practical Transformer scaling.</p>
+    <p>An ODE-like trajectory in the depth coordinate can still depend nonlinearly on trainable parameters. Smoothness as a function of \(\ell/L\) does not imply linearity as a function of \(\theta\). Likewise, an initially near-identity stack need not stay near identity after training: its \(L\) learned order-\(1/L\) contributions can sum to order one.</p>
+    <div class="remark">
+      <p><strong>How to read the earlier note.</strong> TP VI’s objection to the smooth depth limit belongs to its feature-diversity criterion. It should not be read as a universal proof that \(1/L\) scaling cannot transfer hyperparameters or train deep Transformers effectively. CompleteP supplies a different criterion and empirical evidence for that regime.</p>
+      <p>CompleteP selects \(1/L\) to preserve nonlinear learning inside each block. With branch multiplier \(L^{-\alpha}\), maximal residual updates require an internal update scale \(\Delta\theta=O(\eta L^{\alpha-1})\), suppressing width factors. For \(\alpha&lt;1\), these updates shrink with depth: in a two-weight block, the quadratic interaction between their updates becomes smaller than the linear response by a factor \(O(\eta L^{\alpha-1})\). At \(\alpha=1\), internal learning retains its depth scale, while the outer \(1/L\) multiplier keeps each block’s residual contribution small. The choice follows from preserving nonlinear parameter interactions; smoothness is a consequence. See <a href="https://arxiv.org/html/2505.01618v4#S6">Section 6</a>.</p>
+      <p>In this interpretation, smoothness concerns the fractional depth \(\lambda=\ell/L\): bounded branches give \(O(1/L)\) increments, and \(L\) such increments can build an \(O(1)\) transformation. Small steps through depth can therefore implement strongly nonlinear learned computations. Preserving the balance between linear and nonlinear learning as depth changes is the proposed reason that hyperparameters tuned on a shallow model remain useful in a deeper one. The paper’s <a href="https://arxiv.org/html/2505.01618v4#S4">transfer experiments</a> and <a href="https://arxiv.org/html/2505.01618v4#S5">compute-efficiency results</a> support this prescription for its Transformer setup.</p>
+    </div>
+  </section>
+
+  <section id="optimizers">
+    <h2>10. SGD versus Adam: scale the update first</h2>
+    <p>The invariant requirement is</p>
+    \[
+      \Delta\theta^\ell=O(L^{\alpha-1}),
+    \]
+    <p>after factoring out the width scaling. The learning rate needed to realize it depends on the optimizer and parameter coordinates.</p>
+    <h3>Adam or AdamW</h3>
+    <p>The raw gradient includes the branch multiplier \(L^{-\alpha}\). Adam’s ratio of a first moment to a root second moment cancels this common gradient scale, when epsilon is scaled consistently or is negligible. The learning rate must therefore provide</p>
+    \[
+      \eta_{\mathrm{Adam,block}}\propto L^{\alpha-1}.
+    \]
+    <p>For CompleteP, this has <em>no additional depth factor</em>. Width factors still apply.</p>
+    <h3>SGD</h3>
+    <p>In the same direct-weight coordinates, SGD retains the \(L^{-\alpha}\) gradient factor. Thus</p>
+    \[
+      \eta_{\mathrm{SGD,block}}L^{-\alpha}
+      \propto L^{\alpha-1}
+      \quad\Longrightarrow\quad
+      \eta_{\mathrm{SGD,block}}\propto L^{2\alpha-1}.
+    \]
+    <p>At \(\alpha=1/2\), its extra depth factor is one. At \(\alpha=1\), it is \(L\). This explains why copying an Adam learning-rate rule into SGD changes the intended dynamics. These are depth factors on top of the appropriate widthwise rules, not universal raw learning rates for all parameters.</p>
+  </section>
+
+  <section id="width">
+    <h2>11. Putting the width factors back</h2>
+    <p>For an \(n\times n\) hidden matrix in the usual direct-weight \(\mup\) coordinates, initialization has entry scale \(n^{-1/2}\). A learned update acts coherently on a correlated width-\(n\) feature vector. Consequently,</p>
+    \[
+      \Delta W_{ij}=O\!\left(\frac{L^{\alpha-1}}n\right)
+      \quad\Longrightarrow\quad
+      (\Delta Wx)_i=O(L^{\alpha-1}).
+    \]
+    <p>This is the same random-versus-learned summation distinction used in the IV &amp; V note. Applying the residual multiplier gives</p>
+    \[
+      L^{-\alpha}(\Delta Wx)_i=O(1/L).
+    \]
+    <p>At CompleteP, therefore,</p>
+    \[
+      W_{ij,0}=O(n^{-1/2}),\qquad
+      \Delta W_{ij}=O(n^{-1}),\qquad
+      (\Delta Wx)_i=O(1).
+    \]
+    <p>The matrix update becomes small entrywise with width, yet its effect on learned features stays finite. This is why entrywise motion alone cannot diagnose laziness: one must include the correlated sums in the network’s actual response.</p>
+    <p>CompleteP retains the <em>input / hidden / output</em> distinction of widthwise \(\mup\); the calculation above concerns hidden matrices only. The boundary layers are the global embedding and readout; matrices inside residual blocks follow the hidden-layer rules. Compared with the <a href="tensor-programs-iv-v.html#table">IV &amp; V note</a>, the main change here is from SGD to AdamW: gradient normalization changes the learning rates needed to obtain the same widthwise update scales. The explicit inverse-width readout multiplier is a different way of storing the same effective \(O(n^{-1})\) output weights. These differences preserve the underlying widthwise \(\mup\) principle. CompleteP’s substantive extension is in <em>depth</em>: the \(1/L\) residual multiplier and the requirement that nonlinear learning inside each block survive as depth grows.</p>
+  </section>
+
+  <section id="recipe">
+    <h2>12. The practical AdamW scaling table</h2>
+    <p>Implement relative to a base model:</p>
+    \[
+      m_n=\frac{n}{n_0},\qquad m_L=\frac{L}{L_0}.
+    \]
+    <p>The following multipliers follow <a href="https://arxiv.org/html/2505.01618v4#S3.T1">Table 1 of the corrected paper</a>. Multiply each base value by the listed factor. “Hidden” means linear matrices in the Transformer backbone. The readout uses an explicit forward multiplier; its stored initialization and LR therefore differ from the effective-readout SGD convention in the IV &amp; V note.</p>
+    <div class="table-scroll" role="region" aria-label="AdamW width and depth scaling rules" tabindex="0">
+      <table>
+        <caption>Multipliers relative to the base model, in the paper’s pre-LN Transformer convention.</caption>
+        <thead><tr><th scope="col">Quantity</th><th scope="col">General \(\alpha\)</th><th scope="col">CompleteP</th></tr></thead>
+        <tbody>
+          <tr><td>Attention and MLP branch output</td><td>\(m_L^{-\alpha}\)</td><td>\(m_L^{-1}\)</td></tr>
+          <tr><td>Hidden weight initialization <em>variance</em></td><td>\(m_n^{-1}\)</td><td>\(m_n^{-1}\)</td></tr>
+          <tr><td>Hidden weight AdamW LR</td><td>\(m_n^{-1}m_L^{\alpha-1}\)</td><td>\(m_n^{-1}\)</td></tr>
+          <tr><td>Hidden bias AdamW LR</td><td>\(m_L^{\alpha-1}\)</td><td>\(1\)</td></tr>
+          <tr><td>Pre-LN gain and bias AdamW LR</td><td>\(m_L^{\alpha-1}\)</td><td>\(1\)</td></tr>
+          <tr><td>Hidden weight decay coefficient</td><td>\(m_n\)</td><td>\(m_n\)</td></tr>
+          <tr><td>Embedding and stored readout initialization variance</td><td>\(1\)</td><td>\(1\)</td></tr>
+          <tr><td>Embedding, readout, and final-LN AdamW LR</td><td>\(1\)</td><td>\(1\)</td></tr>
+          <tr><td>Readout forward multiplier</td><td>\(m_n^{-1}\)</td><td>\(m_n^{-1}\)</td></tr>
+          <tr><td>Adam epsilon inside residual blocks</td><td>\(m_n^{-1}m_L^{-\alpha}\)</td><td>\(m_n^{-1}m_L^{-1}\)</td></tr>
+          <tr><td>Adam epsilon for embedding and readout</td><td>\(m_n^{-1}\)</td><td>\(m_n^{-1}\)</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Hidden weight <em>standard deviation</em> thus scales as \(m_n^{-1/2}\), with no extra depth shrinkage. LN initial values keep their base scale. For the paper’s untied embedding/readout convention, the logits have the form</p>
+    \[
+      f=m_n^{-1}W_{\mathrm{out}}\operatorname{LN}_{\mathrm{final}}(h^L).
+    \]
+    <p>Both attention and MLP branch outputs receive the depth multiplier before their residual additions. Embeddings, the final normalization, and the readout are not repeated \(L\) times, so they do not receive that branch factor.</p>
+    <div class="remark"><strong>Version detail.</strong> The January 2026 revision corrects the embedding/readout epsilon entries to \(\epsilon_{\mathrm{base}}/m_n\), matching equation (40). Older versions of Table 1 left out this width factor. Epsilon here is Adam’s denominator constant, not LayerNorm’s numerical stabilizer.</div>
+  </section>
+
+  <section id="norm-bias">
+    <h2>13. Why biases and LayerNorm have their own rules</h2>
+    <p>A matrix update gains a coherent factor of \(n\) when it acts on a feature vector. A bias update does not: it is added directly to a coordinate. To obtain the same internal feature scale, the required updates are</p>
+    \[
+      \Delta W_{ij}=O(n^{-1}L^{\alpha-1}),\qquad
+      \Delta b_i=O(L^{\alpha-1}).
+    \]
+    <p>A LayerNorm gain or shift also acts coordinatewise, so it follows the bias rule rather than the hidden-matrix rule. This accounts for the absence of an inverse-width LR multiplier on those parameters.</p>
+    <p>It also matters for comparisons with \(\alpha=1/2\). Shrinking matrix learning rates with depth while leaving pre-LN and bias learning rates fixed lets those parameters move too strongly. The paper’s corrected \(\alpha=1/2\) baseline scales these groups too; its comparison with CompleteP is not just a comparison against that incomplete recipe.</p>
+    <p>At \(\alpha=1\), these depth factors all become one. The derivations are in <a href="https://arxiv.org/html/2505.01618v4#A4">Appendix D</a>.</p>
+  </section>
+
+  <section id="decay-epsilon">
+    <h2>14. Weight decay and Adam’s epsilon</h2>
+    <h3>Weight decay must produce the intended feature change</h3>
+    <p>AdamW includes a separate shrinkage update,</p>
+    \[
+      \Delta W_{\mathrm{decay}}=-\eta_W\lambda_W W.
+    \]
+    <p>Since \(Wx\) is order one, its effect on an internal feature is of scale \(\eta_W\lambda_W\). With</p>
+    \[
+      \eta_W=\eta_0m_n^{-1}m_L^{\alpha-1},\qquad
+      \lambda_W=\lambda_0m_n,
+    \]
+    <p>this becomes \(\eta_0\lambda_0m_L^{\alpha-1}\), matching the depth scale of the learned internal update. There is no additional depth multiplier on \(\lambda_W\). At CompleteP, the shrinkage fraction \(\eta_W\lambda_W\) is independent of both width and depth.</p>
+    <p>This argument concerns hidden matrices to which decay is applied. It does not prescribe turning on decay for biases or normalization parameters that the base recipe excludes.</p>
+    <h3>Epsilon must follow the raw gradient scale</h3>
+    <p>Ignoring the separate decay term, Adam’s update is</p>
+    \[
+      \Delta\theta=-\eta\frac{\widehat m}{\sqrt{\widehat v}+\epsilon}.
+    \]
+    <p>If gradients scale by a positive factor \(c\), then \(\widehat m\) and \(\sqrt{\widehat v}\) both scale by \(c\). Their ratio is invariant only if epsilon is negligible or scales by \(c\) too. For residual-block parameters in this convention, the characteristic gradient factor is</p>
+    \[
+      c=m_n^{-1}m_L^{-\alpha}.
+    \]
+    <p>Hence the epsilon row in the table. Otherwise, as the model grows, a formerly small fixed epsilon can dominate the denominator and silently change the update scaling. Outside the residual stack, the embedding/readout gradient lacks the depth factor. See <a href="https://arxiv.org/html/2505.01618v4#A4.SS5">Appendix D.5</a>.</p>
+  </section>
+
+  <section id="transfer">
+    <h2>15. What actually gets transferred</h2>
+    <p>As in \(\mu\)Transfer, copy the <em>base hyperparameters</em> and regenerate the model-size-dependent values. For example, suppose the target is twice as wide and four times as deep as the base model:</p>
+    \[
+      m_n=2,\qquad m_L=4.
+    \]
+    <p>CompleteP gives the following changes relative to that base model:</p>
+    <table>
+      <thead><tr><th scope="col">Quantity</th><th scope="col">Target / base</th></tr></thead>
+      <tbody>
+        <tr><td>Residual branch multiplier</td><td>\(1/4\)</td></tr>
+        <tr><td>Hidden weight standard deviation</td><td>\(1/\sqrt2\)</td></tr>
+        <tr><td>Hidden weight AdamW LR</td><td>\(1/2\)</td></tr>
+        <tr><td>Bias, pre-LN, embedding, and readout LR</td><td>\(1\)</td></tr>
+        <tr><td>Hidden weight decay coefficient</td><td>\(2\)</td></tr>
+        <tr><td>Readout multiplier</td><td>\(1/2\)</td></tr>
+        <tr><td>Residual-block Adam epsilon</td><td>\(1/8\)</td></tr>
+        <tr><td>Embedding/readout Adam epsilon</td><td>\(1/2\)</td></tr>
+      </tbody>
+    </table>
+    <p>The purpose is to preserve what a base LR or initialization scale <em>does</em> to training. CompleteP also preserves the balance between linear and nonlinear internal learning terms, so the finite proxy and the deeper target need not drift toward different local learning regimes.</p>
+    <p>This is a mechanism for expecting transfer, not a theorem that the exact optimum is identical at every finite size. Changing batch size, training duration, data, or architecture introduces additional questions beyond the width-and-depth exponents.</p>
+  </section>
+
+  <section id="evidence">
+    <h2>16. What the experiments establish</h2>
+    <p>The paper tests pre-LN decoder-only language models on SlimPajama, comparing standard parametrization, width-only \(\mup\), and the corrected depth scalings \(\alpha=1/2\) and \(\alpha=1\). In its fixed-token experiments, CompleteP gives more stable optima for base learning rate and initialization scale as depth changes. The compute-oriented experiments also test models trained at 20 tokens per parameter. See <a href="https://arxiv.org/html/2505.01618v4#S4">Section 4</a>.</p>
+    <p>For models with roughly 1.5 billion non-embedding parameters, the paper reports about 11.8% estimated FLOP savings over its \(\mup\) baseline at the best tested shape, and 34.4% for the deepest, 179-layer shape. These are equal-loss comparisons using fitted scaling curves, not universal training-speed guarantees. The broader finding is that a larger range of narrow, deep models remains competitive. See <a href="https://arxiv.org/html/2505.01618v4#S5">Section 5</a>.</p>
+    <div class="remark"><strong>Scope of the evidence.</strong> The theory studies fixed training horizons; the experiments also explore regimes where training resources grow. The compute-efficiency fits use three model-size groups, and the experiments reach about 1.9B total parameters. FLOP efficiency and wall-clock efficiency are distinct, particularly when comparing deep and wide shapes.</div>
+    <p>The conceptual lesson is that an apparent architectural disadvantage can partly be a parametrization disadvantage. Before concluding that depth is inefficient, the deeper models need a scaling rule that lets their blocks learn on comparable terms.</p>
+  </section>
+
+  <section id="checks">
+    <h2>17. How to check an implementation</h2>
+    <p>A useful check follows the same order as the derivation:</p>
+    <ol>
+      <li><em>Check initialization.</em> Across widths and depths, inspect residual-stream RMS values and logits. They should remain controlled.</li>
+      <li><em>Check early training.</em> Run a few steps on the same data with fixed base HPs. Inspect feature changes, including bias and normalization contributions. An individual block’s direct residual effect should carry the inverse-depth scale.</li>
+      <li><em>Check nonlinear response.</em> Freeze the input to a selected multi-layer block and compare its actual parameter-update response with a Jacobian-vector linearization. Under CompleteP, the relative discrepancy should not systematically disappear just because depth grows.</li>
+      <li><em>Check transfer empirically.</em> Sweep the same base LR and initialization coordinates on a few sizes. Compare both the location of the optimum and the achieved loss.</li>
+    </ol>
+    <p>Stable coordinate checks verify a necessary scaling property; they do not establish complete feature learning or successful HP transfer by themselves. The authors provide a <a href="https://github.com/EleutherAI/nanoGPT-mup/tree/completep">minimal implementation and coordinate-check example</a> for the pre-LN setup.</p>
+  </section>
+
+  <section id="takeaway">
+    <h2>18. Five equations to remember</h2>
+    <div class="equation-summary">
+      \[
+        h^{\ell+1}=h^\ell+L^{-\alpha}F_\ell(h^\ell;\theta^\ell),
+      \]
+      \[
+        \text{initial random scale:}\quad L^{1/2-\alpha}
+        \quad\Longrightarrow\quad\alpha\geq\tfrac12,
+      \]
+      \[
+        \text{critical learning:}\quad\Delta\theta^\ell=O(L^{\alpha-1}),
+      \]
+      \[
+        \frac{\text{quadratic update}}{\text{linear update}}
+        \asymp\eta L^{\alpha-1},
+      \]
+      \[
+        \boxed{\alpha=1:\quad
+        h^{\ell+1}=h^\ell+\frac1L F_\ell(h^\ell;\theta^\ell),
+        \quad\Delta\theta^\ell=O(1)\text{ in depth}.}
+      \]
+    </div>
+    <p>The small residual contribution and the full internal learning scale coexist. Widthwise \(\mup\) handles the correlated sums inside a block; CompleteP’s inverse-depth multiplier handles the sum over blocks. This lets depth grow without automatically turning each block’s nonlinear learning into its tangent approximation.</p>
+  </section>
+
+  <section id="references">
+    <h2>References</h2>
+    <ol class="refs">
+      <li>Nolan Dey, Bin Claire Zhang, Lorenzo Noci, Mufan Li, Blake Bordelon, Shane Bergsma, Cengiz Pehlevan, Boris Hanin, and Joel Hestness. <em>Don’t be lazy: CompleteP enables compute-efficient deep transformers</em>. NeurIPS 2025. <a href="https://arxiv.org/abs/2505.01618v4">arXiv:2505.01618v4</a> (19 January 2026). Especially Section 6, Table 1, and Appendices C–E.</li>
+      <li>Greg Yang and Edward J. Hu. <em>Tensor Programs IV: Feature Learning in Infinite-Width Neural Networks</em>. ICML 2021. <a href="https://proceedings.mlr.press/v139/yang21c.html">PMLR</a>.</li>
+      <li>Greg Yang et al. <em>Tensor Programs V: Tuning Large Neural Networks via Zero-Shot Hyperparameter Transfer</em>. 2022. <a href="https://arxiv.org/abs/2203.03466">arXiv:2203.03466</a>.</li>
+      <li>Greg Yang, Dingli Yu, Chen Zhu, and Soufiane Hayou. <em>Tensor Programs VI: Feature Learning in Infinite-Depth Neural Networks</em>. ICLR 2024. <a href="https://arxiv.org/abs/2310.02244">arXiv:2310.02244</a>.</li>
+      <li>EleutherAI and contributors. <em>nanoGPT-mup, CompleteP branch</em>. <a href="https://github.com/EleutherAI/nanoGPT-mup/tree/completep">Reference implementation</a>.</li>
+    </ol>
+    <p class="small">These are expository working notes. The original papers are the source for precise assumptions, definitions, and claims. The two-weight example and scaling prescriptions are explained from Dey et al.; the connecting discussion and worked transfer example are this note’s exposition.</p>
+    <p class="small">Related notes: <a href="deep-information-propagation.html">Deep information propagation</a> · <a href="tensor-programs-iv-v.html">Tensor Programs IV &amp; V</a> · <a href="tensor-programs-vi.html">Tensor Programs VI</a>.</p>
+  </section>
+</main>
+
+<footer>
+  <a href="../../index.html">dmartinezt.github.io</a> · research notes
+</footer>
+</body>
+</html>

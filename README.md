@@ -13,11 +13,14 @@ python3 -m http.server 8765 --bind 127.0.0.1
 
 Then visit http://127.0.0.1:8765. There are no packages to install and no build step.
 Google Fonts are optional: the site uses system fallbacks when offline.
+Use the local server to preview a saved theme choice across pages; browser
+storage behavior varies when HTML files are opened directly.
 
 ## Edit
 
 - `index.html`: biography, all 11 papers, education (with the 2020–2021 Sorbonne Erasmus exchange nested under the BSc), contact links, and Research notes.
 - `styles.css`: colors, typography, and desktop/mobile layouts.
+- `theme.js`: day/night switching shared by the homepage and notes. Auto uses the visitor's local time: day from 07:00 to 19:00, night otherwise. A manual choice is remembered in browser storage; Auto restores the time-based setting. No location lookup or additional dependencies are needed.
 - `script.js`: the introduction that types each bullet once and leaves it visible; mobile navigation; current section highlighting.
 - `background.js`: the shared neural/vector field. The same nodes gather into Spain in section 01 and Santiago's pilgrim shell in section 04, dispersing in other sections; each transition lasts 1.5 seconds and then stops rendering.
 - `profile.jpg` and `CV.pdf`: copies of the files supplied in the original website.
@@ -33,11 +36,33 @@ page is hidden and never runs a continuous animation loop between transitions.
 
 ## Research notes
 
-This section is intentionally marked “Coming soon”: no research notes were
-provided. To publish a note, create an HTML page in a `notes/` directory and add
-a descriptive link in the `#notes` section of `index.html`. Remove the
-`notes-placeholder` block when adding the first entry. For a short note, an
-`article` directly inside the section also works.
+Research notes are standalone HTML pages in `research_notes/`, listed in the
+`#notes` section of `index.html`, newest first. All ten current pages live in
+`research_notes/nn_parametrization/`:
+
+- NNGP, NTK, and lazy training (24 September 2026).
+- Mean-field feature learning (24 September 2026).
+- Dynamical isometry (24 September 2026).
+- Normalization and residual parametrization (24 September 2026).
+- Spectral scaling and optimizer geometry (24 September 2026).
+- Next follow-ups, a reading list (24 September 2026).
+- Deep information propagation (22 September 2026).
+- CompleteP (18 September 2026).
+- Tensor Programs IV–V (μP and μTransfer, 17 September 2026).
+- Tensor Programs VI (infinite depth, 17 September 2026).
+
+All ten pages load `../../styles.css` for the website's colors and background styles,
+plus `../../assets/math-network.js` and `../../background.js` for the same scattered
+neural field. Their article layouts and MathJax configurations stay in the HTML.
+`../../theme.js` runs before the stylesheet and controls the shared day/night
+buttons. Day restores the original light palette; night uses black, white text,
+and very dark gray artwork. Print styles use a white page with dark text.
+No parser, package installation, or build step is required.
+
+To add a note, put its HTML page in `research_notes/` and add an entry to the
+section's list with its date, title, short description, and relative link.
+Use `../../index.html#notes` for a neural-network parametrization note's link back to Research
+notes. Adjust relative paths to the site root when placing notes in other folders.
 
 ## The Spain network
 

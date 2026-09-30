@@ -3,7 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#f7f8fa">
+  <meta name="theme-color" content="#000000">
+  <script src="theme.js"></script>
   <meta name="description" content="Diego Martinez Taboada — PhD student in Statistics and Data Science at Carnegie Mellon University. Research in statistics, artificial intelligence, and probability.">
   <title>Diego Martinez Taboada · Statistics, AI &amp; Probability</title>
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
@@ -21,7 +22,10 @@
   <a class="skip-link" href="#main">Skip to content</a>
   <header class="site-header">
     <div class="header-inner">
-      <a class="wordmark" href="#home" aria-label="Diego Martinez Taboada, home">dmt</a>
+      <div class="theme-controls" role="group" aria-label="Appearance" hidden>
+        <button class="theme-toggle" data-theme-toggle type="button" aria-label="Switch to night mode"><span class="theme-icon" data-theme-icon aria-hidden="true">☾</span><span data-theme-label>Night</span></button>
+        <button class="theme-auto" data-theme-auto type="button" aria-pressed="true" aria-label="Use local time for day and night" title="Follow local time: day from 7 a.m. to 7 p.m.">Auto</button>
+      </div>
       <button class="nav-toggle" type="button" aria-controls="main-navigation" aria-expanded="false">Menu <span class="menu-icon" aria-hidden="true"></span></button>
       <nav class="navigation" id="main-navigation" aria-label="Main navigation">
         <a href="#about">About</a>
@@ -83,20 +87,20 @@
         </li>
         <li class="paper">
           <div class="paper-year">2026<span class="paper-status">Under review</span></div>
-          <div class="paper-content"><h4>Bentkus-type asymptotic e-values</h4><p class="paper-authors"><span class="me">Diego Martinez-Taboada</span>, Ben Chugg, Aaditya Ramdas</p><div class="paper-links"><a href="https://arxiv.org/abs/2606.06332" target="_blank" rel="noopener">arXiv <span aria-hidden="true">↗</span></a><a href="https://github.com/DMartinezT/bentkus_evalues" target="_blank" rel="noopener">Code <span aria-hidden="true">↗</span></a></div></div>
-        </li>
-        <li class="paper">
-          <div class="paper-year">2026<span class="paper-status">Under review</span></div>
-          <div class="paper-content"><h4>Intrinsic-dimension empirical Bernstein inequalities for bounded self-adjoint operators</h4><p class="paper-authors"><span class="me">Diego Martinez-Taboada</span>, Aaditya Ramdas</p><div class="paper-links"><a href="https://arxiv.org/abs/2605.15278" target="_blank" rel="noopener">arXiv <span aria-hidden="true">↗</span></a><a href="https://github.com/DMartinezT/empirical_bernstein_matrix" target="_blank" rel="noopener">Code <span aria-hidden="true">↗</span></a></div></div>
-        </li>
-        <li class="paper">
-          <div class="paper-year">2026<span class="paper-status">Under review</span></div>
           <div class="paper-content"><h4>Intrinsic dimension concentration inequalities for self-adjoint operators</h4><p class="paper-authors"><span class="me">Diego Martinez-Taboada</span>, Aaditya Ramdas</p><div class="paper-links"><a href="https://arxiv.org/abs/2602.13465" target="_blank" rel="noopener">arXiv <span aria-hidden="true">↗</span></a></div></div>
         </li>
       </ol>
 
       <div class="paper-heading" id="publications"><h3>Publications</h3><a class="small-label scholar-link" href="https://scholar.google.com/citations?user=9-p1MCsAAAAJ&amp;hl=en" target="_blank" rel="noopener">Google Scholar <span aria-hidden="true">↗</span></a></div>
       <ol class="paper-list">
+        <li class="paper">
+          <div class="paper-year">2026</div>
+          <div class="paper-content"><h4>Bentkus-type asymptotic e-values</h4><p class="paper-authors"><span class="me">Diego Martinez-Taboada</span>, Ben Chugg, Aaditya Ramdas</p><div class="paper-publication"><p class="paper-venue">Neural Information Processing Systems (NeurIPS)</p><div class="paper-links"><a href="https://arxiv.org/abs/2606.06332" target="_blank" rel="noopener">arXiv <span aria-hidden="true">↗</span></a><a href="https://github.com/DMartinezT/bentkus_evalues" target="_blank" rel="noopener">Code <span aria-hidden="true">↗</span></a></div></div></div>
+        </li>
+        <li class="paper">
+          <div class="paper-year">2026</div>
+          <div class="paper-content"><h4>Intrinsic-dimension empirical Bernstein inequalities for bounded self-adjoint operators</h4><p class="paper-authors"><span class="me">Diego Martinez-Taboada</span>, Aaditya Ramdas</p><div class="paper-publication"><p class="paper-venue">Neural Information Processing Systems (NeurIPS)</p><div class="paper-links"><a href="https://arxiv.org/abs/2605.15278" target="_blank" rel="noopener">arXiv <span aria-hidden="true">↗</span></a><a href="https://github.com/DMartinezT/empirical_bernstein_matrix" target="_blank" rel="noopener">Code <span aria-hidden="true">↗</span></a></div></div></div>
+        </li>
         <li class="paper">
           <div class="paper-year">2026</div>
           <div class="paper-content"><h4>Sharp empirical Bernstein bounds for the variance of bounded random variables</h4><p class="paper-authors"><span class="me">Diego Martinez-Taboada</span>, Aaditya Ramdas</p><div class="paper-publication"><p class="paper-venue">International Conference on Machine Learning (ICML)</p><div class="paper-links"><a href="https://arxiv.org/abs/2505.01987" target="_blank" rel="noopener">arXiv <span aria-hidden="true">↗</span></a><a href="https://github.com/DMartinezT/emp_bernstein_variance" target="_blank" rel="noopener">Code <span aria-hidden="true">↗</span></a></div></div></div>
@@ -131,8 +135,108 @@
     <section class="section wrap" id="notes" aria-labelledby="notes-title">
       <div class="section-heading"><span class="section-number" aria-hidden="true">03</span><h2 id="notes-title">Research notes</h2><span class="heading-rule"></span></div>
       <p class="notes-intro">Notes I've written with help from my generative friends, revisiting topics from the original papers and explaining them differently to help things click.</p>
-      <div class="notes-placeholder"><p class="muted">New notes will appear here.</p><span class="coming-soon">Coming soon</span></div>
-      <!-- Add research-note articles here when ready; see README.md. -->
+      <ol class="paper-list">
+        <li class="paper">
+          <div class="note-meta">
+            <time class="paper-year" datetime="2026-09-24">24 Sep 2026</time>
+            <div class="paper-links"><a href="research_notes/nn_parametrization/ntk-and-lazy-training.html">Read note <span aria-hidden="true">→</span></a></div>
+          </div>
+          <div class="paper-content">
+            <h3><a href="research_notes/nn_parametrization/ntk-and-lazy-training.html">NNGP, NTK, and lazy training: what exactly freezes?</a></h3>
+            <p class="note-description">Why some wide networks follow their linearization, how parametrization selects the limit, and where feature learning enters.</p>
+          </div>
+        </li>
+        <li class="paper">
+          <div class="note-meta">
+            <time class="paper-year" datetime="2026-09-24">24 Sep 2026</time>
+            <div class="paper-links"><a href="research_notes/nn_parametrization/mean-field-feature-learning.html">Read note <span aria-hidden="true">→</span></a></div>
+          </div>
+          <div class="paper-content">
+            <h3><a href="research_notes/nn_parametrization/mean-field-feature-learning.html">Mean-field feature learning: a network as a distribution of neurons</a></h3>
+            <p class="note-description">How trainable neurons become a moving probability distribution, why the learning-rate clock matters, and how the two-layer mean-field limit connects to μP.</p>
+          </div>
+        </li>
+        <li class="paper">
+          <div class="note-meta">
+            <time class="paper-year" datetime="2026-09-24">24 Sep 2026</time>
+            <div class="paper-links"><a href="research_notes/nn_parametrization/dynamical-isometry.html">Read note <span aria-hidden="true">→</span></a></div>
+          </div>
+          <div class="paper-content">
+            <h3><a href="research_notes/nn_parametrization/dynamical-isometry.html">Dynamical isometry: why variance preservation is insufficient</a></h3>
+            <p class="note-description">From average gradient size to the full Jacobian spectrum: how initialization, nonlinear gates, and residual products shape the directions a network preserves or loses.</p>
+          </div>
+        </li>
+        <li class="paper">
+          <div class="note-meta">
+            <time class="paper-year" datetime="2026-09-24">24 Sep 2026</time>
+            <div class="paper-links"><a href="research_notes/nn_parametrization/normalization-and-residual-parametrization.html">Read note <span aria-hidden="true">→</span></a></div>
+          </div>
+          <div class="paper-content">
+            <h3><a href="research_notes/nn_parametrization/normalization-and-residual-parametrization.html">Normalization and residual parametrization: how they change optimization</a></h3>
+            <p class="note-description">The geometry of LayerNorm and RMSNorm, effective learning rates for scale-invariant weights, and the stability principles behind pre-LN, Fixup, and DeepNorm.</p>
+          </div>
+        </li>
+        <li class="paper">
+          <div class="note-meta">
+            <time class="paper-year" datetime="2026-09-24">24 Sep 2026</time>
+            <div class="paper-links"><a href="research_notes/nn_parametrization/spectral-scaling-and-optimizer-geometry.html">Read note <span aria-hidden="true">→</span></a></div>
+          </div>
+          <div class="paper-content">
+            <h3><a href="research_notes/nn_parametrization/spectral-scaling-and-optimizer-geometry.html">Spectral scaling and optimizer geometry: another derivation of μP</a></h3>
+            <p class="note-description">How matrix action and stable rank explain maximal-update scaling, and how operator norms connect SGD, Adam, and orthogonalized updates.</p>
+          </div>
+        </li>
+        <li class="paper">
+          <div class="note-meta">
+            <time class="paper-year" datetime="2026-09-24">24 Sep 2026</time>
+            <div class="paper-links"><a href="research_notes/nn_parametrization/next-follow-ups.html">Read list <span aria-hidden="true">→</span></a></div>
+          </div>
+          <div class="paper-content">
+            <h3><a href="research_notes/nn_parametrization/next-follow-ups.html">Neural-network parametrization: next follow-ups</a></h3>
+            <p class="note-description">A reading list on attention scaling, unit scaling and u-μP, finite-width effects, and compute-optimal scaling laws.</p>
+          </div>
+        </li>
+        <li class="paper">
+          <div class="note-meta">
+            <time class="paper-year" datetime="2026-09-22">22 Sep 2026</time>
+            <div class="paper-links"><a href="research_notes/nn_parametrization/deep-information-propagation.html">Read note <span aria-hidden="true">→</span></a></div>
+          </div>
+          <div class="paper-content">
+            <h3><a href="research_notes/nn_parametrization/deep-information-propagation.html">Deep information propagation: from MLPs to residual networks</a></h3>
+            <p class="note-description">How signals, input geometry, and gradients propagate through depth, and how residual scaling connects initialization to μP, Depth-μP, and CompleteP.</p>
+          </div>
+        </li>
+        <li class="paper">
+          <div class="note-meta">
+            <time class="paper-year" datetime="2026-09-18">18 Sep 2026</time>
+            <div class="paper-links"><a href="research_notes/nn_parametrization/completep.html">Read note <span aria-hidden="true">→</span></a></div>
+          </div>
+          <div class="paper-content">
+            <h3><a href="research_notes/nn_parametrization/completep.html">CompleteP: keeping deep networks fully nonlinear during learning</a></h3>
+            <p class="note-description">Why inverse-depth residual scaling preserves nonlinear learning, and how AdamW hyperparameters scale across width and depth.</p>
+          </div>
+        </li>
+        <li class="paper">
+          <div class="note-meta">
+            <time class="paper-year" datetime="2026-09-17">17 Sep 2026</time>
+            <div class="paper-links"><a href="research_notes/nn_parametrization/tensor-programs-iv-v.html">Read note <span aria-hidden="true">→</span></a></div>
+          </div>
+          <div class="paper-content">
+            <h3><a href="research_notes/nn_parametrization/tensor-programs-iv-v.html">Tensor Programs IV &amp; V: why μP and μTransfer work</a></h3>
+            <p class="note-description">A width-scaling derivation of μP initialization and learning-rate rules, and why they enable hyperparameter transfer.</p>
+          </div>
+        </li>
+        <li class="paper">
+          <div class="note-meta">
+            <time class="paper-year" datetime="2026-09-17">17 Sep 2026</time>
+            <div class="paper-links"><a href="research_notes/nn_parametrization/tensor-programs-vi.html">Read note <span aria-hidden="true">→</span></a></div>
+          </div>
+          <div class="paper-content">
+            <h3><a href="research_notes/nn_parametrization/tensor-programs-vi.html">Tensor Programs VI: from infinite width to infinite depth</a></h3>
+            <p class="note-description">A working intuition for Depth-μP, residual scaling, and feature learning in the infinite-depth limit.</p>
+          </div>
+        </li>
+      </ol>
     </section>
 
     <section class="section wrap education-section" id="education" aria-labelledby="education-title">

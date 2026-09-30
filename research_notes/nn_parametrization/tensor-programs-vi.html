@@ -1,0 +1,487 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#000000">
+  <script src="../../theme.js"></script>
+  <meta name="description" content="Expository research notes on Tensor Programs VI and Depth-μP: the passage from infinite width to infinite depth.">
+  <title>Tensor Programs VI: from infinite width to infinite depth</title>
+  <link rel="stylesheet" href="../../styles.css">
+  <script src="../../assets/math-network.js" defer></script>
+  <script src="../../background.js" defer></script>
+  <style>
+    :root {
+      --bg: var(--background);
+      --ink: var(--text);
+      --rule: var(--line);
+      --link: var(--blue);
+      --box-bg: var(--surface);
+      --box-border: var(--line);
+      --code-bg: var(--surface);
+      --max: 790px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: 0; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Georgia, "Times New Roman", Times, serif;
+      font-size: 18px;
+      line-height: 1.68;
+      -webkit-font-smoothing: antialiased;
+    }
+    main, header, footer {
+      width: min(var(--max), calc(100% - 38px));
+      margin-left: auto;
+      margin-right: auto;
+    }
+    header { padding: 42px 0 24px; border-bottom: 1px solid var(--rule); }
+    .site-link {
+      display: inline-block;
+      margin-bottom: 30px;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 0.82rem;
+      letter-spacing: .02em;
+    }
+    h1, h2, h3 {
+      font-family: Georgia, "Times New Roman", Times, serif;
+      line-height: 1.22;
+      font-weight: 600;
+      scroll-margin-top: 18px;
+    }
+    h1 { font-size: clamp(2.15rem, 7vw, 3.45rem); margin: 0 0 12px; letter-spacing: -0.025em; }
+    h2 { font-size: 1.62rem; margin: 2.7em 0 .65em; }
+    h3 { font-size: 1.22rem; margin: 2em 0 .45em; }
+    p { margin: 1em 0; }
+    .subtitle { font-size: 1.18rem; color: var(--muted); max-width: 690px; margin: 0 0 12px; }
+    .meta {
+      color: var(--muted);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: .84rem;
+    }
+    main { padding: 28px 0 74px; }
+    a { color: var(--link); text-decoration: underline; text-underline-offset: 0.16em; }
+    a:hover { text-decoration-thickness: 2px; }
+    .toc {
+      border-bottom: 1px solid var(--rule);
+      padding: 0 0 24px;
+      margin-bottom: 34px;
+    }
+    .toc strong {
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: .86rem;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+    .toc ol { margin: 10px 0 0 1.25em; padding: 0; }
+    .toc li { margin: 2px 0; }
+    .toc a { text-decoration: none; }
+    .lead { font-size: 1.08em; }
+    .keyidea, .remark {
+      margin: 1.55em 0;
+      padding: 14px 18px;
+      border-left: 3px solid var(--box-border);
+      background: var(--box-bg);
+    }
+    .keyidea strong, .remark strong {
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: .86rem;
+      letter-spacing: .035em;
+      text-transform: uppercase;
+    }
+    .equation-summary {
+      margin: 1.8em 0;
+      padding: 17px 20px;
+      border: 1px solid var(--box-border);
+      background: var(--box-bg);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1.35em 0 1.7em;
+      font-size: .96em;
+    }
+    th, td { border-bottom: 1px solid var(--rule); padding: 9px 10px; text-align: left; vertical-align: top; }
+    th { font-weight: 600; }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: .88em;
+      background: var(--code-bg);
+      padding: .08em .28em;
+      border-radius: 3px;
+    }
+    .refs { font-size: .94em; }
+    .refs li { margin-bottom: .75em; }
+    .small { color: var(--muted); font-size: .93em; }
+    footer {
+      border-top: 1px solid var(--rule);
+      padding: 22px 0 40px;
+      color: var(--muted);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: .82rem;
+    }
+    @media (max-width: 620px) {
+      body { font-size: 17px; }
+      header { padding-top: 28px; }
+      .site-link { margin-bottom: 22px; }
+      th, td { padding-left: 6px; padding-right: 6px; }
+    }
+    @media print {
+      :root { --bg: #fff; --ink: #000; --muted: #444; --rule: #bbb; --link: #000; --box-bg: #fff; --box-border: #888; }
+      body { font-size: 11.5pt; }
+      .site-link, .toc, .math-background { display: none; }
+      header { padding-top: 0; }
+      main, header, footer { width: 100%; }
+      a { text-decoration: none; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+    }
+  </style>
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(','\\)']],
+        displayMath: [['\\[','\\]']],
+        macros: {
+          mup: '\\mu\\mathrm{P}',
+          E: '\\mathbb{E}'
+        }
+      },
+      options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+    };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+</head>
+<body>
+<div class="math-background" aria-hidden="true"><canvas id="math-background"></canvas></div>
+<header>
+  <div class="note-toolbar">
+    <a class="site-link" href="../../index.html#notes">← Research notes</a>
+    <div class="theme-controls" role="group" aria-label="Appearance" hidden>
+      <button class="theme-toggle" data-theme-toggle type="button" aria-label="Switch to night mode"><span class="theme-icon" data-theme-icon aria-hidden="true">☾</span><span data-theme-label>Night</span></button>
+      <button class="theme-auto" data-theme-auto type="button" aria-pressed="true" aria-label="Use local time for day and night" title="Follow local time: day from 7 a.m. to 7 p.m.">Auto</button>
+    </div>
+  </div>
+  <h1>Tensor Programs VI: from infinite width to infinite depth</h1>
+  <p class="subtitle">A working intuition for Depth-\(\mup\): why the critical residual scaling is \(L^{-1/2}\), why training and initialization accumulate differently, and why the infinite-depth limit is rough rather than ODE-like.</p>
+  <div class="meta">Research notes · 17 September 2026</div>
+</header>
+
+<main>
+  <nav class="toc" aria-label="Table of contents">
+    <strong>Contents</strong>
+    <ol>
+      <li><a href="#big-picture">The big picture</a></li>
+      <li><a href="#setup">The depth-scaling problem</a></li>
+      <li><a href="#two-laws">Two summation laws</a></li>
+      <li><a href="#critical-line">The critical line \(\alpha+\gamma=1\)</a></li>
+      <li><a href="#ode">Why \(1/L\) is not the end of the story</a></li>
+      <li><a href="#brownian">Why \(1/\sqrt L\) is special</a></li>
+      <li><a href="#sde">The SDE picture</a></li>
+      <li><a href="#optimizers">SGD versus Adam</a></li>
+      <li><a href="#tp">Where Tensor Programs enter</a></li>
+      <li><a href="#transfer">Hyperparameter transfer across depth</a></li>
+      <li><a href="#mean-subtraction">Mean subtraction</a></li>
+      <li><a href="#limitations">The block-depth limitation</a></li>
+      <li><a href="#takeaway">Five equations to remember</a></li>
+    </ol>
+  </nav>
+
+  <p class="lead">The cleanest way I have found to read <em>Tensor Programs VI</em> is as the depth analogue of the story in <em>Tensor Programs IV</em> and <em>V</em>. IV identifies the critical infinite-width parametrization that preserves feature learning; V turns that critical limit into widthwise hyperparameter transfer; VI asks for the corresponding critical scaling when the number of residual blocks tends to infinity.</p>
+
+  <p class="small">Companion note: <a href="deep-information-propagation.html#residual-setup">Deep information propagation</a> derives residual variance, correlation, and gradient recursions, and distinguishes preservation of input geometry from feature diversity across depth.</p>
+
+  <section id="big-picture">
+    <h2>1. The big picture</h2>
+    <p>Schematically, the progression is</p>
+    \[
+      \boxed{\text{TP IV: infinite width}}
+      \;\longrightarrow\;
+      \boxed{\text{TP V: widthwise }\mu\text{Transfer}}
+      \;\longrightarrow\;
+      \boxed{\text{TP VI: infinite depth}}.
+    \]
+    <p>There is one important qualification. VI does not replace the infinite-width theory. Its analysis takes width to infinity first and depth second:</p>
+    \[
+      n\to\infty \qquad\text{then}\qquad L\to\infty.
+    \]
+    <p>The paper interprets this as the regime \(1\ll L\ll n\), which is also a useful mental model for why the widthwise Tensor Program calculus can be used before passing to a continuous depth coordinate.</p>
+
+    <div class="keyidea"><strong>Key idea.</strong> Width-\(\mup\) is a critical scaling of training dynamics in the width direction. Depth-\(\mup\) is the analogous critical scaling in the depth direction.</div>
+  </section>
+
+  <section id="setup">
+    <h2>2. The depth-scaling problem</h2>
+    <p>Consider a residual network with \(L\) blocks. VI writes the residual stream in the generic form</p>
+    \[
+      x^\ell = x^{\ell-1} + L^{-\alpha} g^\ell(x^{\ell-1};W^\ell),
+      \qquad \ell=1,\dots,L,
+    \]
+    <p>and lets the characteristic parameter-update size scale as</p>
+    \[
+      \Delta W^\ell = O(L^{-\gamma}).
+    \]
+    <p>The two exponents play different roles. The branch exponent \(\alpha\) controls how much each residual block contributes to the forward dynamics. The update exponent \(\gamma\) controls how quickly each block moves under training.</p>
+    <p>The question is then: which pair \((\alpha,\gamma)\) gives a depth limit that is stable, nontrivial, feature-learning, and not wastefully redundant?</p>
+  </section>
+
+  <section id="two-laws">
+    <h2>3. Two summation laws</h2>
+    <p>The whole scaling argument is driven by a distinction between two ways that terms add over depth.</p>
+
+    <h3>Initialization: random increments add like \(\sqrt L\)</h3>
+    <p>At initialization, different residual blocks contain fresh random weights. Very roughly, their centered contributions behave like random increments. One block contributes \(O(L^{-\alpha})\), so accumulating \(L\) of them produces</p>
+    \[
+      \sqrt{L}\,L^{-\alpha}=L^{1/2-\alpha}.
+    \]
+    <p>Therefore initialization remains stable only if</p>
+    \[
+      \boxed{\alpha\ge \tfrac12}.
+    \]
+    <p>The largest residual branch consistent with this stability condition is the boundary choice \(\alpha=1/2\).</p>
+
+    <h3>Training: learned increments add coherently like \(L\)</h3>
+    <p>A weight update of size \(L^{-\gamma}\) passes through a branch multiplier \(L^{-\alpha}\), so its direct contribution to the residual stream is of order</p>
+    \[
+      L^{-\alpha-\gamma}.
+    \]
+    <p>These learned contributions are not fresh independent noise: gradients in neighboring blocks are highly correlated. Their aggregate therefore scales like</p>
+    \[
+      L\,L^{-\alpha-\gamma}=L^{1-\alpha-\gamma}.
+    \]
+    <p>This is the second summation law, and it is the source of the training criticality condition.</p>
+  </section>
+
+  <section id="critical-line">
+    <h2>4. The critical line \(\alpha+\gamma=1\)</h2>
+    <p>The training contribution behaves differently on the two sides of the line \(\alpha+\gamma=1\):</p>
+    <table>
+      <thead><tr><th>Scaling</th><th>Large-depth behavior</th></tr></thead>
+      <tbody>
+        <tr><td>\(\alpha+\gamma&lt;1\)</td><td>training updates accumulate too strongly and the dynamics become unstable;</td></tr>
+        <tr><td>\(\alpha+\gamma&gt;1\)</td><td>the aggregate training effect vanishes, giving a trivial depth limit;</td></tr>
+        <tr><td>\(\alpha+\gamma=1\)</td><td>training produces an \(O(1)\), nontrivial change.</td></tr>
+      </tbody>
+    </table>
+    <p>Thus stability and nontriviality force</p>
+    \[
+      \boxed{\alpha+\gamma=1}.
+    \]
+    <p>Combining this with initialization stability leaves an entire family of valid critical limits:</p>
+    \[
+      \alpha+\gamma=1,
+      \qquad \frac12\le \alpha\le 1.
+    \]
+    <p>Examples include \((1/2,1/2)\), \((3/4,1/4)\), and \((1,0)\). The main conceptual work of VI is explaining why these limits are not equally good.</p>
+  </section>
+
+  <section id="ode">
+    <h2>5. Why \(1/L\) is not the end of the story</h2>
+    <p>The choice</p>
+    \[
+      (\alpha,\gamma)=(1,0)
+    \]
+    <p>gives the familiar residual scaling</p>
+    \[
+      x^\ell=x^{\ell-1}+\frac1L g^\ell(x^{\ell-1}).
+    \]
+    <p>If \(\lambda=\ell/L\), this naturally suggests a smooth continuous-depth limit. In the simplest picture, differences over \(\varepsilon L\) layers scale as</p>
+    \[
+      x^{(\lambda+\varepsilon)L}-x^{\lambda L}=O(\varepsilon),
+    \]
+    <p>which is the regularity one expects from an ODE trajectory.</p>
+    <p>This limit can be stable, nontrivial, and feature-learning. But VI argues that it is still suboptimal because nearby layers become asymptotically too similar. The hidden-layer randomness gets washed out, making the depth trajectory smooth and locally redundant.</p>
+
+    <div class="remark"><strong>Important distinction.</strong> The existence of feature learning is not enough. Just as there are many possible infinite-width limits, there are many possible infinite-depth feature-learning limits. Hyperparameter transfer is tied to selecting the appropriate critical limit, not merely to the existence of some limit.</div>
+  </section>
+
+  <section id="brownian">
+    <h2>6. Why \(1/\sqrt L\) is special</h2>
+    <p>Now set \(\alpha=1/2\). Over a window of \(\varepsilon L\) layers, the accumulated initialization noise has size</p>
+    \[
+      \frac1{\sqrt L}\sqrt{\varepsilon L}=\sqrt{\varepsilon}.
+    \]
+    <p>It therefore survives the depth limit. In the language of the paper, this gives maximal feature diversity: nearby layers differ on the rough scale</p>
+    \[
+      \|x(\lambda+\varepsilon)-x(\lambda)\|\asymp \sqrt{\varepsilon},
+    \]
+    <p>rather than the smooth \(O(\varepsilon)\) scale.</p>
+    <p>This is the hallmark of Brownian increments. VI formalizes the distinction through a feature-diversity exponent: Depth-\(\mup\) has exponent \(1/2\), while the critical parametrizations with \(\alpha&gt;1/2\) are smooth/redundant in the corresponding sense.</p>
+    <p>Since the critical line requires \(\alpha+\gamma=1\), choosing the largest initialization noise compatible with stability immediately forces</p>
+    \[
+      \boxed{\alpha=\gamma=\frac12}.
+    \]
+    <p>This is Depth-\(\mup\).</p>
+  </section>
+
+  <section id="sde">
+    <h2>7. The SDE picture</h2>
+    <p>The previous calculation gives a useful continuous-depth mnemonic. Let</p>
+    \[
+      d\lambda=\frac1L.
+    \]
+    <p>At Depth-\(\mup\), the fresh random part of one residual step is \(O(L^{-1/2})=O(\sqrt{d\lambda})\), while the training-induced drift of one step is \(O(L^{-1})=O(d\lambda)\). Schematically,</p>
+    \[
+      dx_\lambda
+      = \sigma_\lambda\,dB_\lambda
+      + b_\lambda\,d\lambda.
+    \]
+    <p>This equation should be read as intuition rather than as the literal full Tensor Program state equation. The actual limit tracks richer random-variable/operator objects. But the separation into a \(\sqrt{d\lambda}\) Gaussian term and a \(d\lambda\) drift term is exactly the right structural picture.</p>
+    <table>
+      <thead><tr><th>Branch scaling</th><th>Continuous-depth character</th></tr></thead>
+      <tbody>
+        <tr><td>\(1/L\)</td><td>smooth, ODE-like trajectory;</td></tr>
+        <tr><td>\(1/\sqrt L\)</td><td>rough, diffusion-like trajectory retaining hidden-layer randomness.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="optimizers">
+    <h2>8. SGD versus Adam</h2>
+    <p>The invariant prescription is not simply “multiply the learning rate by \(L^{-1/2}\).” The fundamental condition is</p>
+    \[
+      \boxed{\Delta W^\ell=O(L^{-1/2}).}
+    \]
+    <p>How this translates into a raw learning-rate rule depends on the optimizer.</p>
+    <p>For SGD, the backpropagated gradient already contains the residual multiplier \(L^{-1/2}\). An \(O(1)\) master learning rate therefore gives</p>
+    \[
+      \Delta W^\ell_{\mathrm{SGD}}=O(L^{-1/2}).
+    \]
+    <p>For Adam, coordinatewise normalization removes the overall scale of the gradient, so the learning rate itself must supply the factor:</p>
+    \[
+      \eta_{\mathrm{Adam}}\propto L^{-1/2}.
+    \]
+    <div class="keyidea"><strong>Practical rule.</strong> Scale the <em>update</em> as \(L^{-1/2}\). For SGD this can occur automatically through the residual multiplier; for Adam it requires an explicit \(L^{-1/2}\) learning-rate factor.</div>
+  </section>
+
+  <section id="tp">
+    <h2>9. Where Tensor Programs enter</h2>
+    <p>The proof strategy has two asymptotic stages.</p>
+    <h3>First: width \(n\to\infty\)</h3>
+    <p>The Tensor Programs machinery replaces high-dimensional vectors by random variables representing their coordinate distributions. Schematically,</p>
+    \[
+      x\in\mathbb{R}^n \quad\rightsquigarrow\quad |x\rangle,
+      \qquad
+      \frac{x^\top y}{n}\to \mathbb{E}[|x\rangle |y\rangle].
+    \]
+    <p>This is the same basic simplification that underlies the width theory in IV.</p>
+    <h3>Second: depth \(L\to\infty\)</h3>
+    <p>One introduces fractional depth \(\lambda=\ell/L\in[0,1]\). In the linear warm-up, discrete coefficient and covariance arrays—denoted by \(\Gamma\) and \(C\) in the paper—are rescaled into functions of continuous depth variables. Their finite-depth recursions then converge to integral equations.</p>
+    <p>The conceptual chain is therefore</p>
+    \[
+      \text{finite neural network}
+      \xrightarrow[n\to\infty]{}
+      \text{random-variable Tensor Program}
+      \xrightarrow[L\to\infty]{}
+      \text{continuous-depth random process}.
+    \]
+  </section>
+
+  <section id="transfer">
+    <h2>10. Hyperparameter transfer across depth</h2>
+    <p>Tensor Programs V turns the correct width parametrization into a practical statement: in \(\mup\), the hyperparameter landscape stabilizes with width, so one can tune on a smaller proxy model and transfer to a larger target model.</p>
+    <p>VI argues for the depth analogue. With</p>
+    \[
+      x^\ell=x^{\ell-1}+\frac{a}{\sqrt L}g^\ell(x^{\ell-1};W^\ell),
+    \]
+    <p>and \(O(L^{-1/2})\) parameter updates, the constants such as the block multiplier \(a\) and the master learning-rate parameter can approach depth-independent optima. The paper's experiments train residual networks with up to \(2^{10}=1024\) blocks and show much more stable learning-rate landscapes under Depth-\(\mup\) than under standard depth scalings.</p>
+    <p>A particularly useful lesson from Appendix I is that “a limit exists” does not imply “hyperparameters transfer.” The \(1/L\) ODE scaling has a legitimate feature-learning limit but is still suboptimal in the paper's classification because it loses feature diversity.</p>
+  </section>
+
+  <section id="mean-subtraction">
+    <h2>11. Mean subtraction</h2>
+    <p>The main nonlinear setup in VI uses centered residual branches:</p>
+    \[
+      x^\ell
+      =x^{\ell-1}+L^{-\alpha}\operatorname{MS}\!\left(\phi(W^\ell x^{\ell-1})\right),
+    \]
+    <p>where</p>
+    \[
+      \operatorname{MS}(z)=z-\frac1n\langle z,\mathbf{1}\rangle\mathbf{1}.
+    \]
+    <p>The issue already appears at initialization: centered preactivations need not give centered activations. For example, if \(Z\sim\mathcal{N}(0,1)\), then \(\mathbb{E}[\operatorname{ReLU}(Z)]=1/\sqrt{2\pi}&gt;0\). Thus even zero-mean random weights produce a positive average residual contribution after ReLU. Controlling the size of each branch is not enough, because this shared offset accumulates coherently across layers.</p>
+    <p>For a simple scaling picture, suppose the unscaled branches have bounded statistics and an approximately constant mean \(m&gt;0\), and write \(g^\ell=m\mathbf{1}+\varepsilon^\ell\), with \(\varepsilon^\ell\) representing centered random fluctuations. With the \(1/\sqrt L\) multiplier, the mean accumulates to \(m\sqrt L\), while the fresh centered fluctuations accumulate to order one. Shrinking the multiplier to \(1/L\) would keep this mean bounded, but would also shrink the random fluctuations to \(O(L^{-1/2})\), losing the randomness that supports feature diversity. The illustrative decomposition is</p>
+    \[
+      \frac1{\sqrt L}\sum_{\ell=1}^L g^\ell
+      =\underbrace{m\sqrt L\,\mathbf{1}}_{\text{coherent mean}}
+      +\underbrace{\frac1{\sqrt L}\sum_{\ell=1}^L\varepsilon^\ell}_{\text{order-one random fluctuations}}.
+    \]
+    <p>Mean subtraction removes the average <em>across feature coordinates, separately for each input and layer</em>, so the larger \(1/\sqrt L\) multiplier can preserve these fluctuations without accumulating the shared offset. This is the centering operation used in LayerNorm, without the variance normalization. It does not remove all learned drift: training can still produce coordinated changes in centered feature directions. At Depth-\(\mup\), a branch change of order \(L^{-1/2}\) receives another \(L^{-1/2}\) from the residual multiplier, giving an \(O(1/L)\) contribution per block that can sum to an \(O(1)\) learning effect.</p>
+  </section>
+
+  <section id="limitations">
+    <h2>12. The block-depth limitation</h2>
+    <p>The clean optimality result is for residual blocks containing one trainable matrix, schematically</p>
+    \[
+      g^\ell(x)=\phi(W^\ell x).
+    \]
+    <p>This is an important caveat for modern architectures. A Transformer MLP block, for example, contains a composition such as</p>
+    \[
+      W_2\phi(W_1x),
+    \]
+    <p>so the block itself has depth at least two.</p>
+    <p>Appendix K explains the problem. If both parameter changes are \(O(L^{-1/2})\), then products such as</p>
+    \[
+      \Delta W_2\,\Delta W_1
+    \]
+    <p>are lower order and disappear as \(L\to\infty\). The block therefore becomes linearized with respect to the learned parameter changes: terms such as \(W_{2,0}\Delta W_1\) and \(\Delta W_2 W_{1,0}\) survive, but the multiplicative interaction between the two learned updates does not.</p>
+    <p>The paper argues that this creates a genuine defect for block depth \(\ge 2\) and observes associated hyperparameter shifts experimentally. So VI should not be read as a complete final scaling law for arbitrarily deep modern Transformers; rather, it exposes a new obstruction that appears once a residual block contains several interacting trainable layers.</p>
+  </section>
+
+  <section id="takeaway">
+    <h2>13. Five equations to remember</h2>
+    <div class="equation-summary">
+      \[
+        x^{\ell+1}=x^\ell+L^{-\alpha}g^\ell(x^\ell),
+      \]
+      \[
+        \text{initialization noise:}\qquad \sqrt L\,L^{-\alpha},
+      \]
+      \[
+        \text{training drift:}\qquad L\,L^{-\alpha}L^{-\gamma},
+      \]
+      \[
+        \alpha\ge\frac12,\qquad \alpha+\gamma=1,
+      \]
+      \[
+        \boxed{\alpha=\gamma=\frac12.}
+      \]
+    </div>
+    <p>Equivalently, Depth-\(\mup\) uses</p>
+    \[
+      \boxed{
+      x^{\ell+1}=x^\ell+\frac1{\sqrt L}g^\ell(x^\ell),
+      \qquad
+      \Delta W^\ell=O\!\left(\frac1{\sqrt L}\right).
+      }
+    \]
+    <p>The corresponding continuous-depth mnemonic is</p>
+    \[
+      dx_\lambda
+      \sim
+      \underbrace{dB_\lambda}_{\text{initialization diversity}}
+      +
+      \underbrace{b_\lambda\,d\lambda}_{\text{feature-learning drift}}.
+    \]
+    <p>That is the central mental model I want to retain from Tensor Programs VI.</p>
+  </section>
+
+  <section id="references">
+    <h2>References</h2>
+    <ol class="refs">
+      <li>Greg Yang and Edward J. Hu. <em>Tensor Programs IV: Feature Learning in Infinite-Width Neural Networks</em>. ICML 2021. <a href="https://proceedings.mlr.press/v139/yang21c.html">PMLR</a>.</li>
+      <li>Greg Yang, Edward J. Hu, Igor Babuschkin, Szymon Sidor, Xiaodong Liu, David Farhi, Nick Ryder, Jakub Pachocki, Weizhu Chen, and Jianfeng Gao. <em>Tensor Programs V: Tuning Large Neural Networks via Zero-Shot Hyperparameter Transfer</em>. 2022. <a href="https://arxiv.org/abs/2203.03466">arXiv:2203.03466</a>.</li>
+      <li>Greg Yang, Dingli Yu, Chen Zhu, and Soufiane Hayou. <em>Tensor Programs VI: Feature Learning in Infinite-Depth Neural Networks</em>. ICLR 2024. <a href="https://arxiv.org/abs/2310.02244">arXiv:2310.02244</a>.</li>
+    </ol>
+    <p class="small">These are expository working notes. The paper should be taken as the source for precise statements, assumptions, and proofs.</p>
+  </section>
+</main>
+
+<footer>
+  <a href="../../index.html">dmartinezt.github.io</a> · research notes
+</footer>
+</body>
+</html>

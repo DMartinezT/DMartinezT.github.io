@@ -1,0 +1,516 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#000000">
+  <script src="../../theme.js"></script>
+  <meta name="description" content="The geometry of LayerNorm and RMSNorm, the effective learning rate of scale-invariant weights, and the different stability principles behind pre-LN, Fixup, and DeepNorm.">
+  <title>Normalization and residual parametrization: how they change optimization</title>
+  <link rel="stylesheet" href="../../styles.css">
+  <script src="../../assets/math-network.js" defer></script>
+  <script src="../../background.js" defer></script>
+  <style>
+    :root {
+      --bg: var(--background);
+      --ink: var(--text);
+      --rule: var(--line);
+      --link: var(--blue);
+      --box-bg: var(--surface);
+      --box-border: var(--line);
+      --code-bg: var(--surface);
+      --max: 790px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: 0; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Georgia, "Times New Roman", Times, serif;
+      font-size: 18px;
+      line-height: 1.68;
+      -webkit-font-smoothing: antialiased;
+    }
+    main, header, footer {
+      width: min(var(--max), calc(100% - 38px));
+      margin-left: auto;
+      margin-right: auto;
+    }
+    header { padding: 42px 0 24px; border-bottom: 1px solid var(--rule); }
+    .site-link {
+      display: inline-block;
+      margin-bottom: 30px;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 0.82rem;
+      letter-spacing: .02em;
+    }
+    h1, h2, h3 {
+      font-family: Georgia, "Times New Roman", Times, serif;
+      line-height: 1.22;
+      font-weight: 600;
+      scroll-margin-top: 18px;
+    }
+    h1 { font-size: clamp(2.15rem, 7vw, 3.45rem); margin: 0 0 12px; letter-spacing: -0.025em; }
+    h2 { font-size: 1.62rem; margin: 2.7em 0 .65em; }
+    h3 { font-size: 1.22rem; margin: 2em 0 .45em; }
+    p { margin: 1em 0; }
+    .subtitle { font-size: 1.18rem; color: var(--muted); max-width: 690px; margin: 0 0 12px; }
+    .meta {
+      color: var(--muted);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: .84rem;
+    }
+    main { padding: 28px 0 74px; }
+    a { color: var(--link); text-decoration: underline; text-underline-offset: 0.16em; }
+    a:hover { text-decoration-thickness: 2px; }
+    .toc {
+      border-bottom: 1px solid var(--rule);
+      padding: 0 0 24px;
+      margin-bottom: 34px;
+    }
+    .toc strong {
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: .86rem;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+    .toc ol { margin: 10px 0 0 1.25em; padding: 0; }
+    .toc li { margin: 2px 0; }
+    .toc a { text-decoration: none; }
+    .lead { font-size: 1.08em; }
+    .keyidea, .remark {
+      margin: 1.55em 0;
+      padding: 14px 18px;
+      border-left: 3px solid var(--box-border);
+      background: var(--box-bg);
+    }
+    .keyidea strong, .remark strong {
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: .86rem;
+      letter-spacing: .035em;
+      text-transform: uppercase;
+    }
+    .keyidea p:first-child, .remark p:first-child { margin-top: 0; }
+    .keyidea p:last-child, .remark p:last-child { margin-bottom: 0; }
+    .equation-summary {
+      margin: 1.8em 0;
+      padding: 17px 20px;
+      border: 1px solid var(--box-border);
+      background: var(--box-bg);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1.35em 0 1.7em;
+      font-size: .96em;
+    }
+    th, td { border-bottom: 1px solid var(--rule); padding: 9px 10px; text-align: left; vertical-align: top; }
+    th { font-weight: 600; }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: .88em;
+      background: var(--code-bg);
+      padding: .08em .28em;
+      border-radius: 3px;
+    }
+    mjx-container[display="true"] { overflow-x: auto; overflow-y: hidden; padding: .25em 0; max-width: 100%; }
+    .table-scroll { overflow-x: auto; margin: 1.35em 0 1.7em; }
+    .table-scroll table { margin: 0; min-width: 540px; }
+    caption { text-align: left; color: var(--muted); font-size: .9em; margin-bottom: .6em; }
+    a:focus-visible, button:focus-visible, .table-scroll:focus-visible { outline: 2px solid var(--link); outline-offset: 4px; }
+    @media print {
+      mjx-container[display="true"], .table-scroll { overflow: visible; }
+      .table-scroll table { min-width: 0; }
+    }
+    .refs { font-size: .94em; }
+    .refs li { margin-bottom: .75em; }
+    .small { color: var(--muted); font-size: .93em; }
+    footer {
+      border-top: 1px solid var(--rule);
+      padding: 22px 0 40px;
+      color: var(--muted);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: .82rem;
+    }
+    @media (max-width: 620px) {
+      body { font-size: 17px; }
+      header { padding-top: 28px; }
+      .site-link { margin-bottom: 22px; }
+      th, td { padding-left: 6px; padding-right: 6px; }
+    }
+    @media print {
+      :root { --bg: #fff; --ink: #000; --muted: #444; --rule: #bbb; --link: #000; --box-bg: #fff; --box-border: #888; }
+      body { font-size: 11.5pt; }
+      .site-link, .toc, .math-background { display: none; }
+      header { padding-top: 0; }
+      main, header, footer { width: 100%; }
+      a { text-decoration: none; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+    }
+
+    pre { overflow-x: auto; padding: 16px; border: 1px solid var(--rule); background: var(--code-bg); font-size: .82em; line-height: 1.55; }
+    pre code { padding: 0; background: none; font-size: 1em; }
+    .related { font-size: .93em; color: var(--muted); }
+    .table-scroll:focus-visible { outline: 2px solid var(--link); outline-offset: 4px; }
+    @media print { pre { white-space: pre-wrap; overflow-wrap: anywhere; } }
+  </style>
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(','\\)']],
+        displayMath: [['\\[','\\]']],
+        macros: {
+          mup: '\\mu\\mathrm{P}',
+          E: '\\mathbb{E}'
+        }
+      },
+      options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+    };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+</head>
+<body>
+<div class="math-background" aria-hidden="true"><canvas id="math-background"></canvas></div>
+<header>
+  <div class="note-toolbar">
+    <a class="site-link" href="../../index.html#notes">← Research notes</a>
+    <div class="theme-controls" role="group" aria-label="Appearance" hidden>
+      <button class="theme-toggle" data-theme-toggle type="button" aria-label="Switch to night mode"><span class="theme-icon" data-theme-icon aria-hidden="true">☾</span><span data-theme-label>Night</span></button>
+      <button class="theme-auto" data-theme-auto type="button" aria-pressed="true" aria-label="Use local time for day and night" title="Follow local time: day from 7 a.m. to 7 p.m.">Auto</button>
+    </div>
+  </div>
+  <h1>Normalization and residual parametrization: how they change optimization</h1>
+  <p class="subtitle">The geometry of LayerNorm and RMSNorm, the effective learning rate of scale-invariant weights, and the different stability principles behind pre-LN, Fixup, and DeepNorm.</p>
+  <div class="meta">Research notes · 24 September 2026</div>
+</header>
+<main>
+  <nav class="toc" aria-label="Table of contents">
+    <strong>Contents</strong>
+    <ol>
+      <li><a href="#three-scales">Three scales that normalization can separate</a></li>
+      <li><a href="#layernorm">LayerNorm is centering followed by radial rescaling</a></li>
+      <li><a href="#jacobian">Deriving the LayerNorm Jacobian</a></li>
+      <li><a href="#directions">Which directions survive normalization?</a></li>
+      <li><a href="#epsilon">Epsilon changes the geometry near a small input</a></li>
+      <li><a href="#rmsnorm">RMSNorm removes scale without removing the mean</a></li>
+      <li><a href="#scale-invariance">A scale-invariant weight has a scale-dependent gradient</a></li>
+      <li><a href="#effective-lr">Deriving the effective learning rate on direction</a></li>
+      <li><a href="#weight-decay">Weight decay can change the learning clock</a></li>
+      <li><a href="#adam">Why Adam changes the scaling calculation</a></li>
+      <li><a href="#pre-post">Pre-LN and post-LN have different Jacobian products</a></li>
+      <li><a href="#stream-size">Pre-LN does not fix the residual-stream norm</a></li>
+      <li><a href="#fixup">Fixup controls the first functional update</a></li>
+      <li><a href="#deepnorm">DeepNorm changes the skip-to-branch balance</a></li>
+      <li><a href="#comparison">Stability criteria that should be compared separately</a></li>
+      <li><a href="#parameter-groups">Normalization parameters need their own update accounting</a></li>
+      <li><a href="#experiment">Three small checks that expose the geometry</a></li>
+      <li><a href="#takeaway">Five equations to remember</a></li>
+    </ol>
+  </nav>
+  <p class="lead">Normalization changes both the values a layer sees and the directions in which its inputs can affect the output. Residual connections determine how that geometry is repeated through depth. To understand their effect on parametrization, it helps to derive the normalization Jacobian first, then follow a parameter update all the way to the network function.</p>
+  <p class="small">This note builds on the <a href="deep-information-propagation.html#normalization">normalization discussion in DIP</a> and the <a href="completep.html#norm-bias">parameter-group rules in CompleteP</a>. The calculations distinguish exact identities for simplified layers from architecture-specific results about Transformer training.</p>
+
+  <section id="three-scales">
+    <h2>1. Three scales that normalization can separate</h2>
+    <p>For a residual block, three quantities can behave differently:</p>
+    <ol>
+      <li>The size of the residual stream \(h\).</li>
+      <li>The size of the normalized input seen by the branch.</li>
+      <li>The change in the network function caused by updating branch parameters.</li>
+    </ol>
+    <p>A normalization layer can hold the second quantity fixed while the first grows. A bounded gradient norm does not by itself fix the third, because the gradient must be combined with the optimizer and the rest of the network's Jacobian.</p>
+    <p>Throughout the note, \(n\) is the feature dimension, \(L\) is the number of residual branches, and \(a_\ell\) is an explicit branch multiplier. LayerNorm's stabilizer is denoted \(\epsilon_{\mathrm{LN}}\); it is unrelated to Adam's denominator constant.</p>
+    <div class="keyidea"><strong>Starting point.</strong> Normalization is a differentiable map with its own invariances and singular directions. Treating it as a box that merely “keeps variance equal to one” misses its optimization geometry.</div>
+  </section>
+
+  <section id="layernorm">
+    <h2>2. LayerNorm is centering followed by radial rescaling</h2>
+    <p>For one feature vector \(x\in\mathbb R^n\), define</p>
+    \[
+      P=I-\frac{\mathbf1\mathbf1^\top}{n},
+      \qquad c=Px,\qquad
+      s=\sqrt{\frac{\|c\|^2}{n}+\epsilon_{\mathrm{LN}}}.
+    \]
+    <p>The normalized vector before the learned affine transformation is</p>
+    \[
+      N(x)=u=\frac{c}{s},
+      \qquad \operatorname{LN}_{\gamma,\beta}(x)=\gamma\odot u+\beta.
+    \]
+    <p>\(P\) removes the constant-coordinate direction. When \(\epsilon_{\mathrm{LN}}=0\) and \(c\neq0\), \(u\) lies on a sphere of radius \(\sqrt n\) inside the mean-zero subspace. All positively rescaled copies of \(c\) reach the same point.</p>
+    <p>The gain and bias are applied afterward. Consequently, learned affine LayerNorm need not have mean zero or RMS one. These descriptions apply to its normalized intermediate \(u\), not automatically to its final output. See <a href="https://arxiv.org/abs/1607.06450">Ba, Kiros, and Hinton (2016)</a> for the original construction.</p>
+  </section>
+
+  <section id="jacobian">
+    <h2>3. Deriving the LayerNorm Jacobian</h2>
+    <p>A perturbation \(dx\) first gives \(dc=P\,dx\). Since \(c^\top P=c^\top\),</p>
+    \[
+      ds=\frac{c^\top dx}{ns}.
+    \]
+    <p>Differentiate \(u=c/s\):</p>
+    \[
+      du=\frac{P\,dx}{s}-\frac{c(c^\top dx)}{ns^3},
+      \qquad
+      \boxed{DN(x)=\frac1s\left(P-\frac{uu^\top}{n}\right).}
+    \]
+    <p>The first term centers and rescales the perturbation. The second removes the part that would change the normalization denominator. Including the affine gain gives</p>
+    \[
+      D\operatorname{LN}_{\gamma,\beta}(x)
+      =\operatorname{diag}(\gamma)\,DN(x).
+    \]
+    <p>The bias does not enter the input Jacobian. A nonuniform gain changes the singular values and output directions, so the simple symmetric eigendecomposition below refers to \(N\), before that gain.</p>
+  </section>
+
+  <section id="directions">
+    <h2>4. Which directions survive normalization?</h2>
+    <p>With zero epsilon and nonzero centered input, the Jacobian annihilates two directions:</p>
+    \[
+      DN(x)\mathbf1=0,\qquad DN(x)c=0.
+    \]
+    <p>A common shift is removed by centering. A radial change is removed by rescaling. Every vector \(v\) orthogonal to both \(\mathbf1\) and \(c\) satisfies</p>
+    \[
+      DN(x)v=\frac{v}{s}.
+    \]
+    <p>Thus LayerNorm transmits tangent directions to the centered sphere and scales them by \(1/s\). For \(n\geq3\), its un-affined spectral norm is \(1/s\), with rank \(n-2\).</p>
+    <p>For a concrete example, take \(x=(1,0,-1)\). Then \(s=\sqrt{2/3}\). The shift direction \((1,1,1)\) and radial direction \((1,0,-1)\) vanish; the remaining direction \((1,-2,1)\) is multiplied by \(\sqrt{3/2}\).</p>
+    <p>This loss of two directions is intentional. If the representation identifies vectors that differ only by shift and positive scale, those directions carry redundant information. Full-space invertibility is therefore not the right success criterion for normalization.</p>
+  </section>
+
+  <section id="epsilon">
+    <h2>5. Epsilon changes the geometry near a small input</h2>
+    <p>With \(\epsilon_{\mathrm{LN}}&gt;0\), shifts still disappear exactly. The radial direction now obeys</p>
+    \[
+      DN(x)c=\frac{\epsilon_{\mathrm{LN}}}{s^3}\,c.
+    \]
+    <p>The tangent multiplier is still \(1/s\). Their ratio is \(\epsilon_{\mathrm{LN}}/s^2\). When centered variance greatly exceeds epsilon, radial sensitivity is small and the scale-invariant picture is accurate. When epsilon dominates, the map becomes approximately</p>
+    \[
+      N(x)\approx\frac{Px}{\sqrt{\epsilon_{\mathrm{LN}}}}.
+    \]
+    <p>It is then closer to a linear centered rescaling than to a projection onto a fixed-radius sphere. Epsilon both regularizes a near-zero denominator and breaks exact positive-scale invariance.</p>
+    <p>Likewise, \(N(cx)=N(x)\) for \(c&gt;0\) is exact only in the zero-epsilon idealization. A scaling derivation that relies on this identity should check whether epsilon is negligible at the model sizes being compared.</p>
+  </section>
+
+  <section id="rmsnorm">
+    <h2>6. RMSNorm removes scale without removing the mean</h2>
+    <p>Before its learned gain, RMSNorm uses</p>
+    \[
+      R(x)=\frac{x}{r},\qquad
+      r=\sqrt{\frac{\|x\|^2}{n}+\epsilon_{\mathrm{RMS}}},
+      \qquad
+      DR(x)=\frac1r\left(I-\frac{R(x)R(x)^\top}{n}\right).
+    \]
+    <p>At zero epsilon, only the radial direction is removed. The constant-coordinate direction is not generally removed, because there is no centering projection \(P\). The normalization sphere is now in the full feature space.</p>
+    <p>This makes the distinction with TP VI's mean subtraction concrete. A normalized vector can still have a nonzero coordinate mean. RMSNorm cannot be inserted into a calculation that requires centered residual increments without checking the branch's actual mean.</p>
+    <p><a href="https://arxiv.org/abs/1910.07467">Zhang and Sennrich (2019)</a> introduced RMSNorm as a simpler normalization retaining rescaling invariance. The geometric distinction above follows directly from differentiating the two maps; it does not imply that one is uniformly better for every task.</p>
+  </section>
+
+  <section id="scale-invariance">
+    <h2>7. A scale-invariant weight has a scale-dependent gradient</h2>
+    <p>Suppose a parameter group \(w\) enters the loss through an exactly scale-invariant function:</p>
+    \[
+      \mathcal L(cw)=\mathcal L(w),\qquad c&gt;0.
+    \]
+    <p>An idealized example is a matrix \(W\) used only through \(N(Wx)\), with zero epsilon, when the entire matrix is scaled. This invariance does not automatically hold for an arbitrary individual matrix in a pre-LN residual branch.</p>
+    <p>Differentiate with respect to \(c\) at \(c=1\), and separately with respect to \(w\):</p>
+    \[
+      w^\top\nabla_w\mathcal L=0,\qquad
+      \nabla_w\mathcal L(cw)=\frac1c\nabla_w\mathcal L(w).
+    \]
+    <p>The Euclidean gradient is tangent to the sphere of constant weight norm, and its magnitude decreases when the same represented function is stored with a larger weight norm.</p>
+    <p>The initial function therefore does not completely determine the size of an SGD step in function space. The norm of its redundant parameter representation still matters. This is the central interaction studied by <a href="https://arxiv.org/abs/1706.05350">van Laarhoven (2017)</a>.</p>
+  </section>
+
+  <section id="effective-lr">
+    <h2>8. Deriving the effective learning rate on direction</h2>
+    <p>Write \(w=ru\), where \(r=\|w\|\) and \(\|u\|=1\). Let \(g_u\) be the tangent gradient of the loss as a function of \(u\). Then</p>
+    \[
+      \nabla_w\mathcal L=\frac{g_u}{r},
+      \qquad
+      \Delta w=-\eta\frac{g_u}{r}.
+    \]
+    <p>To first order, the change in direction is</p>
+    \[
+      \boxed{\Delta u=-\frac{\eta}{r^2}g_u+O(\eta^2).}
+    \]
+    <p>The effective directional step size is \(\eta/r^2\). Doubling a scale-invariant weight's norm while holding the raw SGD rate fixed reduces its leading angular update by a factor of four, even though the network computes the same function before the step.</p>
+    <p>Under exact continuous gradient flow, the radius is constant because \(w^\top\dot w=0\). Discrete SGD is different: a straight tangent step lands outside the old sphere, so</p>
+    \[
+      \|w-\eta g\|^2=\|w\|^2+\eta^2\|g\|^2,
+      \qquad g=\nabla_w\mathcal L.
+    \]
+    <p>Repeated finite steps can grow the radius and reduce the effective directional rate. This mechanism disappears if one looks only at the unchanged normalized forward function.</p>
+  </section>
+
+  <section id="weight-decay">
+    <h2>9. Weight decay can change the learning clock</h2>
+    <p>For the same scale-invariant group, an SGD step with decay is</p>
+    \[
+      w_+=(1-\eta\lambda)w-\eta g.
+    \]
+    <p>Orthogonality of \(w\) and \(g\) gives the exact one-step identity</p>
+    \[
+      \|w_+\|^2=(1-\eta\lambda)^2\|w\|^2+\eta^2\|g\|^2.
+    \]
+    <p>Decay shrinks the radius while the tangent gradient step grows it. Controlling that radius changes \(\eta/r^2\), and therefore changes how quickly the represented direction learns.</p>
+    <p>Pure positive rescaling leaves the idealized forward function unchanged at that instant, but can substantially change subsequent training. This explains why a penalty on a redundant norm can have an optimization effect. It does not establish that weight decay has no generalization effect in a real normalized network, whose other parameters and finite-epsilon behavior need not share the invariance.</p>
+    <p>For ordinary SGD, an \(L_2\) penalty and multiplicative weight decay give the same update convention. Under adaptive methods, including the penalty inside the gradient preconditions it; decoupled weight decay applies shrinkage separately. See <a href="https://arxiv.org/abs/1711.05101">Loshchilov and Hutter, <em>Decoupled Weight Decay Regularization</em></a>.</p>
+  </section>
+
+  <section id="adam">
+    <h2>10. Why Adam changes the scaling calculation</h2>
+    <p>Ignoring decay, Adam uses a coordinatewise update of the form</p>
+    \[
+      \Delta w=-\eta\frac{\widehat m}{\sqrt{\widehat v}+\epsilon_{\mathrm A}}.
+    \]
+    <p>If an entire gradient history is multiplied by \(c&gt;0\), then \(\widehat m\) and \(\sqrt{\widehat v}\) are both multiplied by \(c\). With negligible epsilon, the normalized update is unchanged.</p>
+    <p>In the idealized comparison \(w\mapsto rw\), scale invariance makes the raw gradient smaller by \(1/r\); Adam can remove this common factor. A coordinate update of fixed size then has a directional effect of order \(\eta/r\), rather than the SGD dependence \(\eta/r^2\).</p>
+    <p>This is a local scaling argument, not an exact statement that two complete Adam trajectories match. Optimizer histories, epsilon, decay, and coordinatewise anisotropy matter. In particular, preconditioning a gradient can destroy its Euclidean orthogonality to \(w\), so the exact norm identity in §9 cannot simply be reused for Adam.</p>
+    <p>The <a href="completep.html#decay-epsilon">CompleteP note</a> derives epsilon and decay factors for its particular stored-parameter convention. Those factors and the geometric effects here describe different aspects of the same optimizer update.</p>
+  </section>
+
+  <section id="pre-post">
+    <h2>11. Pre-LN and post-LN have different Jacobian products</h2>
+    <p>Suppress learned affine gains for clarity. One pre-LN block is</p>
+    \[
+      h_+=h+aF(N(h)),\qquad
+      J_{\mathrm{pre}}=I+a\,DF(N(h))\,DN(h).
+    \]
+    <p>The identity route bypasses normalization. A perturbation in the nullspace of \(DN(h)\) still travels through the identity term.</p>
+    <p>For a post-LN block,</p>
+    \[
+      z=h+aF(h),\qquad h_+=N(z),\qquad
+      J_{\mathrm{post}}=DN(z)\,[I+a\,DF(h)].
+    \]
+    <p>Every route passes through the normalization Jacobian after addition. Across many blocks, these are different matrix products with different projections and scale factors.</p>
+    <p>The literal identity term does not guarantee a pre-LN Jacobian has all singular values near one: its branch contribution can be large, anisotropic, or cancel part of the identity. Conversely, losing normalization-redundant directions is not by itself evidence that post-LN cannot train.</p>
+    <p><a href="https://arxiv.org/abs/2002.04745">Xiong et al. (2020)</a> analyze initialization gradients for the two placements and connect their differences to warm-up. Their results motivate a particular stability mechanism; they do not make warm-up unnecessary for every pre-LN training setup.</p>
+  </section>
+
+  <section id="stream-size">
+    <h2>12. Pre-LN does not fix the residual-stream norm</h2>
+    <p>Let \(b_\ell=F_\ell(N(h_\ell))\), and write \(q_\ell=\|h_\ell\|^2/n\). The residual update gives the exact identity</p>
+    \[
+      q_{\ell+1}=q_\ell+
+      \frac{2a_\ell}{n}h_\ell^\top b_\ell+
+      a_\ell^2\frac{\|b_\ell\|^2}{n}.
+    \]
+    <p>At an initialization where the cross term vanishes in expectation and the branch second moment is approximately \(v\),</p>
+    \[
+      \mathbb E q_L\approx q_0+v\sum_{\ell=0}^{L-1}a_\ell^2.
+    \]
+    <p>With unscaled branches, the stream RMS can grow like \(\sqrt L\), even while each normalized branch input has controlled RMS. For a roughly centered stream, \(DN(h_\ell)\) then has tangent scale about \(1/\sqrt{q_\ell}\).</p>
+    <p>This attenuates the branch's sensitivity to changes in its input and reduces the relative size of a fixed branch addition. It does not multiply every gradient with respect to the branch's own weights by that same factor: those gradients must be computed through the actual parameter pathway.</p>
+    <p>Training can create nonzero cross terms, so the initialization sum-of-squares law is not a complete training model. This is the same limitation emphasized in <a href="deep-information-propagation.html#residual-budget">the residual signal-propagation calculation</a>.</p>
+  </section>
+
+  <section id="fixup">
+    <h2>13. Fixup controls the first functional update</h2>
+    <p>A scalar branch explains the characteristic Fixup exponent. Let a branch have \(m\geq2\) trainable factors:</p>
+    \[
+      F(x)=w_mw_{m-1}\cdots w_1x.
+    \]
+    <p>Initialize \(w_m=0\) and the other factors at scale \(b\). The branch output is initially zero. Given an order-one downstream loss derivative \(r\), its last factor has gradient \(r b^{m-1}x\), while earlier-factor gradients are initially zero.</p>
+    <p>An SGD step of size \(\eta\) gives</p>
+    \[
+      \Delta w_m=-\eta r b^{m-1}x,\qquad
+      \Delta F(x)=-\eta r b^{2m-2}x^2.
+    \]
+    <p>For \(L\) branches whose direct first-order contributions accumulate coherently, an order-one total update suggests</p>
+    \[
+      Lb^{2m-2}=O(1),\qquad
+      \boxed{b=L^{-1/(2m-2)}.}
+    \]
+    <p>This scalar derivation isolates the exponent used by <a href="https://arxiv.org/abs/1901.09321">Fixup</a>. The actual recipe rescales standard initializations, zeros the last layer in each branch and the classifier, and adds trainable scalar biases and branch multipliers. A zero classifier can delay branch learning until the readout first moves; the calculation above assumes a nonzero downstream gradient has reached the branch.</p>
+    <p>Earlier factors begin learning after the zero final factor moves. Fixup's initialization argument does not mean every parameter is active on the very first step, or establish CompleteP's criterion for nonlinear interactions throughout a depth limit.</p>
+  </section>
+
+  <section id="deepnorm">
+    <h2>14. DeepNorm changes the skip-to-branch balance</h2>
+    <p>DeepNorm uses a post-normalized block of the form</p>
+    \[
+      h_+=\operatorname{LN}(\alpha h+G(h;\theta)),
+    \]
+    <p>along with a depth-dependent initialization multiplier \(\beta\) on selected branch matrices. Its derivation controls the accumulation of changes in the network function. See <a href="https://arxiv.org/abs/2203.00555">Wang et al., <em>DeepNet</em></a>.</p>
+    <p>With positive \(\alpha\) and zero normalization epsilon,</p>
+    \[
+      N(\alpha h+G)=N(h+\alpha^{-1}G).
+    \]
+    <p>Increasing the skip coefficient therefore reduces the relative branch contribution seen by normalization. But it does not remove the normalization projection after the addition. The result is still post-LN, not an identity bypass around LayerNorm.</p>
+    <p>The initialization factor changes both forward branch size and parameter sensitivities. It cannot be inferred solely by moving \(\alpha\) through the forward map. In the paper, the scaled matrices include feed-forward weights and attention value/output projections; the constants depend on whether the model is an encoder, decoder, or encoder-decoder. A single universal depth exponent would conceal these architectural choices.</p>
+    <p>The relevant conceptual comparison with Fixup is where the depth control is placed: Fixup arranges branch initialization and startup updates without normalization; DeepNorm jointly chooses normalization placement, residual balance, and selected initial weight scales.</p>
+  </section>
+
+  <section id="comparison">
+    <h2>15. Stability criteria that should be compared separately</h2>
+    <div class="table-scroll" role="region" aria-label="Different residual training criteria" tabindex="0"><table>
+      <thead><tr><th scope="col">Approach</th><th scope="col">Central object to inspect</th><th scope="col">Additional question</th></tr></thead>
+      <tbody>
+        <tr><td>Pre-LN analysis</td><td>Initialization gradients and normalization placement</td><td>How large are updates after applying the optimizer?</td></tr>
+        <tr><td>Fixup</td><td>Depth scaling of initial functional updates</td><td>How do all branch parameters become active later?</td></tr>
+        <tr><td>DeepNorm</td><td>Accumulation of functional changes with modified post-LN blocks</td><td>How do the architecture-specific constants transfer?</td></tr>
+        <tr><td>Depth-μP</td><td>Feature-learning depth limit and feature diversity</td><td>What happens in blocks containing multiple trained operations?</td></tr>
+        <tr><td>CompleteP</td><td>Nonlinear parameter interactions inside deep blocks</td><td>What trained geometry and finite-model performance result?</td></tr>
+      </tbody>
+    </table></div>
+    <p>These approaches overlap, but their success criteria differ. A model can have stable initialization gradients without a width- or depth-independent optimal learning rate. It can have bounded functional updates while some internal interactions shrink away.</p>
+    <p>The <a href="tensor-programs-vi.html">TP VI</a> and <a href="completep.html">CompleteP</a> notes explain why their respective depth criteria select different residual exponents. Normalization adds architecture-specific geometry to that comparison; it does not erase the distinction between the criteria.</p>
+  </section>
+
+  <section id="parameter-groups">
+    <h2>16. Normalization parameters need their own update accounting</h2>
+    <p>For the affine map \(z=\gamma\odot u+\beta\), hold \(u\) fixed. A parameter update changes its output by</p>
+    \[
+      \Delta z=\Delta\gamma\odot u+\Delta\beta.
+    \]
+    <p>There is no sum over \(n\) incoming coordinates. This differs from a hidden matrix update \(\Delta W u\), whose entries can combine coherently across width. Applying a hidden-matrix learning-rate rule to a gain vector merely because both have trainable coordinates can therefore give the wrong feature-update scale.</p>
+    <p>If the normalized affine map lies inside a residual branch, its effect on the stream also passes through subsequent operations and the branch multiplier. If it is the final normalization before the readout, it is not repeated \(L\) times. These locations require separate calculations.</p>
+    <p>This is why the <a href="completep.html#recipe">CompleteP scaling table</a> distinguishes hidden matrices, biases, pre-LN parameters, and the final normalization. A good implementation check measures the induced feature change from each parameter group, not only the norm of its raw gradient.</p>
+  </section>
+
+  <section id="experiment">
+    <h2>17. Three small checks that expose the geometry</h2>
+    <ol>
+      <li><em>Check the Jacobian.</em> At \(x=(1,0,-1)\), compare centered finite differences with the formula in §3 along the shift, radial, and tangent directions. Repeat with nonzero epsilon and verify the small radial eigenvalue.</li>
+      <li><em>Check the learning clock.</em> Use a toy model that depends on \(w\) only through \(w/\|w\|\). Start from \(w\) and \(2w\), use the same small SGD rate, and compare directional changes. Their leading ratio should be four. Use a scalar multiple of the identity for any remaining readout so no extra symmetry is accidentally broken.</li>
+      <li><em>Check a stack.</em> Build pre-LN and post-LN residual MLPs with matched branch weights. Across depths, record stream RMS, branch-input RMS, Jacobian singular values on meaningful directions, and output changes after one optimizer step.</li>
+    </ol>
+    <p>For the stack, state whether the pre-LN model includes a final normalization, keep the loss reduction fixed, and distinguish matrix parameters from gain/bias parameters. These choices change the comparison.</p>
+    <p>The first two are direct checks of exact or small-step identities. The third is a proposed diagnostic experiment; the formulas above do not predict one universal ordering of pre-LN and post-LN performance.</p>
+  </section>
+
+  <section id="takeaway">
+    <h2>18. Five equations to remember</h2>
+    <div class="equation-summary">
+      \[\boxed{DN(x)=\frac1s\left(P-\frac{uu^\top}{n}\right)}\]
+      \[\boxed{\Delta u_{\mathrm{weight}}=-\frac{\eta}{\|w\|^2}g_u+O(\eta^2)}\]
+      \[\boxed{J_{\mathrm{pre}}=I+a\,DF\,DN,\qquad J_{\mathrm{post}}=DN\,(I+a\,DF)}\]
+      \[\boxed{\mathbb E q_L\approx q_0+v\sum_\ell a_\ell^2\quad\text{under centered initialization assumptions}}\]
+      \[\boxed{Lb^{2m-2}=O(1)\quad\Rightarrow\quad b=L^{-1/(2m-2)}}\]
+    </div>
+    <p>The Jacobian identifies the transmitted directions. Scale invariance changes the effective SGD clock. Placement changes the depthwise product. Pre-normalization still allows stream growth. The Fixup calculation shows how an initial functional-update requirement produces a block-depth-dependent exponent.</p>
+  </section>
+
+  <section id="references">
+    <h2>References</h2>
+    <ol class="refs">
+      <li>Jimmy Lei Ba, Jamie Ryan Kiros, and Geoffrey E. Hinton. <em>Layer Normalization</em>. 2016. <a href="https://arxiv.org/abs/1607.06450">Paper</a>.</li>
+      <li>Biao Zhang and Rico Sennrich. <em>Root Mean Square Layer Normalization</em>. NeurIPS 2019. <a href="https://arxiv.org/abs/1910.07467">Paper</a>.</li>
+      <li>Twan van Laarhoven. <em>L2 Regularization versus Batch and Weight Normalization</em>. 2017. <a href="https://arxiv.org/abs/1706.05350">Paper</a>. Weight scale and effective learning rate.</li>
+      <li>Ilya Loshchilov and Frank Hutter. <em>Decoupled Weight Decay Regularization</em>. ICLR 2019. <a href="https://arxiv.org/abs/1711.05101">Paper</a>.</li>
+      <li>Ruibin Xiong et al. <em>On Layer Normalization in the Transformer Architecture</em>. ICML 2020. <a href="https://arxiv.org/abs/2002.04745">Paper</a>. Pre-LN, post-LN, and initialization gradients.</li>
+      <li>Hongyi Zhang, Yann N. Dauphin, and Tengyu Ma. <em>Fixup Initialization: Residual Learning Without Normalization</em>. ICLR 2019. <a href="https://arxiv.org/abs/1901.09321">Paper</a>. Initial functional-update scaling and the full implementation recipe.</li>
+      <li>Hongyu Wang et al. <em>DeepNet: Scaling Transformers to 1,000 Layers</em>. 2022. <a href="https://arxiv.org/abs/2203.00555">Paper</a>. DeepNorm and architecture-dependent initialization.</li>
+      <li>Greg Yang et al. <em>Tensor Programs VI</em>. ICLR 2024. <a href="https://arxiv.org/abs/2310.02244">Paper</a>. Nolan Dey et al. <em>Don’t be lazy: CompleteP enables compute-efficient deep transformers</em>. NeurIPS 2025, corrected 2026 version. <a href="https://arxiv.org/abs/2505.01618v4">Paper</a>.</li>
+    </ol>
+    <p class="small">These are expository working notes. Exact scale-invariance statements assume zero normalization epsilon and the specified parameter-group symmetry. The scalar Fixup derivation isolates a scaling mechanism; it is not a replacement for the complete architecture-specific recipe.</p>
+  </section>
+
+  <p class="related">Companion notes: <a href="ntk-and-lazy-training.html">NNGP, NTK, and lazy training</a> · <a href="mean-field-feature-learning.html">Mean-field feature learning</a> · <a href="dynamical-isometry.html">Dynamical isometry</a> · <a href="spectral-scaling-and-optimizer-geometry.html">Spectral scaling and optimizer geometry</a>.</p>
+</main>
+<footer>
+  <a href="../../index.html">dmartinezt.github.io</a> · research notes
+</footer>
+</body>
+</html>

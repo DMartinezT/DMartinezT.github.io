@@ -10,9 +10,16 @@
   const educationList = document.querySelector('.education-list');
   const cvLink = document.querySelector('.cv-link');
   const header = document.querySelector('.site-header');
-  if (!graph || !canvas || !about || !mapSlot) return;
+  if (!graph || !canvas) return;
   const context = canvas.getContext('2d');
   if (!context) return;
+  let nodeColor, vectorColor;
+  function readTheme() {
+    const styles = getComputedStyle(document.documentElement);
+    nodeColor = styles.getPropertyValue('--network-node').trim() || '100,122,139';
+    vectorColor = styles.getPropertyValue('--network-vector').trim() || '155,112,82';
+  }
+  readTheme();
 
   const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
   const mix = (a, b, amount) => a + (b - a) * amount;
@@ -110,6 +117,12 @@
 
   function measure(now) {
     if (needsResize) resize();
+    // Standalone notes use the same field without a geographic destination.
+    if (!about || !mapSlot) {
+      mapRect = { left: 0, top: 0, width, height };
+      needsMeasure = false;
+      return;
+    }
     const nextRect = mapSlot.getBoundingClientRect();
     const nextSymbolRect = symbol ? symbolSlot.getBoundingClientRect() : null;
     const headerBottom = header ? header.getBoundingClientRect().bottom : 0;
@@ -150,7 +163,7 @@
       context.moveTo(a[0], a[1]);
       context.lineTo(b[0], b[1]);
     }
-    context.strokeStyle = `rgba(100,122,139,${opacity})`;
+    context.strokeStyle = `rgba(${nodeColor},${opacity})`;
     context.lineWidth = .7;
     context.stroke();
   }
@@ -185,7 +198,7 @@
     connections(fieldEdges, .065 * (1 - blend), Math.max(65, Math.sqrt(width * height / count) * 2.2));
     connections(graph.connections, .2 * spainBlend, Math.max(60, 90 * scale));
     if (symbol) connections(symbol.connections, .28 * symbolBlend, Math.max(60, 90 * symbolScale));
-    context.fillStyle = `rgba(100,122,139,${mix(.12, .38, blend)})`;
+    context.fillStyle = `rgba(${nodeColor},${mix(.12, .38, blend)})`;
     context.beginPath();
     positions.forEach(([x, y], index) => {
       const radius = mix(index % 11 === 0 ? 2 : 1.15, index % 11 === 0 ? 1.7 : .95, blend);
@@ -200,7 +213,7 @@
     // Spain and the scattered background keep their existing motifs.
     const vectorOpacity = mix(.15, .45, blend) * (1 - symbolBlend);
     if (vectorOpacity < .002) return;
-    context.strokeStyle = `rgba(155,112,82,${vectorOpacity})`;
+    context.strokeStyle = `rgba(${vectorColor},${vectorOpacity})`;
     context.lineWidth = 1;
     context.beginPath();
     graph.vectors.forEach((vector, index) => {
@@ -222,7 +235,7 @@
     // Move them in from the field and fade them out when leaving About me.
     const cityOpacity = .45 * spainBlend;
     if (cityOpacity < .002) return;
-    context.strokeStyle = `rgba(155,112,82,${cityOpacity})`;
+    context.strokeStyle = `rgba(${vectorColor},${cityOpacity})`;
     context.beginPath();
     cityVectors.forEach((city, index) => {
       const x = mix(cityHomes[index][0] * width, mapX + city.origin[0] * scale, spainBlend);
@@ -256,6 +269,7 @@
   window.addEventListener('scroll', refresh, { passive: true });
   window.addEventListener('resize', () => { needsResize = true; refresh(); }, { passive: true });
   window.addEventListener('pageshow', refresh);
+  document.addEventListener('themechange', () => { readTheme(); schedule(); });
   motion.addEventListener('change', refresh);
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) { cancelAnimationFrame(frame); frame = 0; }

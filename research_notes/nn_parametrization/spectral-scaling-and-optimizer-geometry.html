@@ -1,0 +1,575 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#000000">
+  <script src="../../theme.js"></script>
+  <meta name="description" content="Why matrix action matters more than entry size, how stable rank explains maximal-update scaling, and how operator norms connect SGD, Adam, and orthogonalized updates.">
+  <title>Spectral scaling and optimizer geometry: another derivation of μP</title>
+  <link rel="stylesheet" href="../../styles.css">
+  <script src="../../assets/math-network.js" defer></script>
+  <script src="../../background.js" defer></script>
+  <style>
+    :root {
+      --bg: var(--background);
+      --ink: var(--text);
+      --rule: var(--line);
+      --link: var(--blue);
+      --box-bg: var(--surface);
+      --box-border: var(--line);
+      --code-bg: var(--surface);
+      --max: 790px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: 0; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Georgia, "Times New Roman", Times, serif;
+      font-size: 18px;
+      line-height: 1.68;
+      -webkit-font-smoothing: antialiased;
+    }
+    main, header, footer {
+      width: min(var(--max), calc(100% - 38px));
+      margin-left: auto;
+      margin-right: auto;
+    }
+    header { padding: 42px 0 24px; border-bottom: 1px solid var(--rule); }
+    .site-link {
+      display: inline-block;
+      margin-bottom: 30px;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 0.82rem;
+      letter-spacing: .02em;
+    }
+    h1, h2, h3 {
+      font-family: Georgia, "Times New Roman", Times, serif;
+      line-height: 1.22;
+      font-weight: 600;
+      scroll-margin-top: 18px;
+    }
+    h1 { font-size: clamp(2.15rem, 7vw, 3.45rem); margin: 0 0 12px; letter-spacing: -0.025em; }
+    h2 { font-size: 1.62rem; margin: 2.7em 0 .65em; }
+    h3 { font-size: 1.22rem; margin: 2em 0 .45em; }
+    p { margin: 1em 0; }
+    .subtitle { font-size: 1.18rem; color: var(--muted); max-width: 690px; margin: 0 0 12px; }
+    .meta {
+      color: var(--muted);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: .84rem;
+    }
+    main { padding: 28px 0 74px; }
+    a { color: var(--link); text-decoration: underline; text-underline-offset: 0.16em; }
+    a:hover { text-decoration-thickness: 2px; }
+    .toc {
+      border-bottom: 1px solid var(--rule);
+      padding: 0 0 24px;
+      margin-bottom: 34px;
+    }
+    .toc strong {
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: .86rem;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+    .toc ol { margin: 10px 0 0 1.25em; padding: 0; }
+    .toc li { margin: 2px 0; }
+    .toc a { text-decoration: none; }
+    .lead { font-size: 1.08em; }
+    .keyidea, .remark {
+      margin: 1.55em 0;
+      padding: 14px 18px;
+      border-left: 3px solid var(--box-border);
+      background: var(--box-bg);
+    }
+    .keyidea strong, .remark strong {
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: .86rem;
+      letter-spacing: .035em;
+      text-transform: uppercase;
+    }
+    .keyidea p:first-child, .remark p:first-child { margin-top: 0; }
+    .keyidea p:last-child, .remark p:last-child { margin-bottom: 0; }
+    .equation-summary {
+      margin: 1.8em 0;
+      padding: 17px 20px;
+      border: 1px solid var(--box-border);
+      background: var(--box-bg);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1.35em 0 1.7em;
+      font-size: .96em;
+    }
+    th, td { border-bottom: 1px solid var(--rule); padding: 9px 10px; text-align: left; vertical-align: top; }
+    th { font-weight: 600; }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: .88em;
+      background: var(--code-bg);
+      padding: .08em .28em;
+      border-radius: 3px;
+    }
+    mjx-container[display="true"] { overflow-x: auto; overflow-y: hidden; padding: .25em 0; max-width: 100%; }
+    .table-scroll { overflow-x: auto; margin: 1.35em 0 1.7em; }
+    .table-scroll table { margin: 0; min-width: 540px; }
+    caption { text-align: left; color: var(--muted); font-size: .9em; margin-bottom: .6em; }
+    a:focus-visible, button:focus-visible, .table-scroll:focus-visible { outline: 2px solid var(--link); outline-offset: 4px; }
+    @media print {
+      mjx-container[display="true"], .table-scroll { overflow: visible; }
+      .table-scroll table { min-width: 0; }
+    }
+    .refs { font-size: .94em; }
+    .refs li { margin-bottom: .75em; }
+    .small { color: var(--muted); font-size: .93em; }
+    footer {
+      border-top: 1px solid var(--rule);
+      padding: 22px 0 40px;
+      color: var(--muted);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: .82rem;
+    }
+    @media (max-width: 620px) {
+      body { font-size: 17px; }
+      header { padding-top: 28px; }
+      .site-link { margin-bottom: 22px; }
+      th, td { padding-left: 6px; padding-right: 6px; }
+    }
+    @media print {
+      :root { --bg: #fff; --ink: #000; --muted: #444; --rule: #bbb; --link: #000; --box-bg: #fff; --box-border: #888; }
+      body { font-size: 11.5pt; }
+      .site-link, .toc, .math-background { display: none; }
+      header { padding-top: 0; }
+      main, header, footer { width: 100%; }
+      a { text-decoration: none; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+    }
+
+    pre { overflow-x: auto; padding: 16px; border: 1px solid var(--rule); background: var(--code-bg); font-size: .82em; line-height: 1.55; }
+    pre code { padding: 0; background: none; font-size: 1em; }
+    .related { font-size: .93em; color: var(--muted); }
+    .table-scroll:focus-visible { outline: 2px solid var(--link); outline-offset: 4px; }
+    @media print { pre { white-space: pre-wrap; overflow-wrap: anywhere; } }
+  </style>
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(','\\)']],
+        displayMath: [['\\[','\\]']],
+        macros: {
+          mup: '\\mu\\mathrm{P}',
+          E: '\\mathbb{E}'
+        }
+      },
+      options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+    };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+</head>
+<body>
+<div class="math-background" aria-hidden="true"><canvas id="math-background"></canvas></div>
+<header>
+  <div class="note-toolbar">
+    <a class="site-link" href="../../index.html#notes">← Research notes</a>
+    <div class="theme-controls" role="group" aria-label="Appearance" hidden>
+      <button class="theme-toggle" data-theme-toggle type="button" aria-label="Switch to night mode"><span class="theme-icon" data-theme-icon aria-hidden="true">☾</span><span data-theme-label>Night</span></button>
+      <button class="theme-auto" data-theme-auto type="button" aria-pressed="true" aria-label="Use local time for day and night" title="Follow local time: day from 7 a.m. to 7 p.m.">Auto</button>
+    </div>
+  </div>
+  <h1>Spectral scaling and optimizer geometry: another derivation of μP</h1>
+  <p class="subtitle">Why matrix action matters more than entry size, how stable rank explains maximal-update scaling, and how operator norms connect SGD, Adam, and orthogonalized updates.</p>
+  <div class="meta">Research notes · 24 September 2026</div>
+</header>
+<main>
+  <nav class="toc" aria-label="Table of contents">
+    <strong>Contents</strong>
+    <ol>
+      <li><a href="#matrix-action">Entry size does not determine matrix action</a></li>
+      <li><a href="#rms-operator">Measure features in RMS units</a></li>
+      <li><a href="#update-condition">Apply the same units to the update</a></li>
+      <li><a href="#alignment">An operator-norm bound is not a lower bound on learning</a></li>
+      <li><a href="#rank-one">A one-example SGD update has perfect alignment</a></li>
+      <li><a href="#stable-rank">Stable rank connects entry size to operator norm</a></li>
+      <li><a href="#initialization">Recover the initialization scales</a></li>
+      <li><a href="#small-readout">Why the random initial readout can vanish</a></li>
+      <li><a href="#sgd">Recover the SGD learning rates</a></li>
+      <li><a href="#norm-table">The hidden layer in one table</a></li>
+      <li><a href="#adam">Adam keeps the target update scale but changes the raw rates</a></li>
+      <li><a href="#coordinates">Equivalent forward coordinates need equivalent optimizer coordinates</a></li>
+      <li><a href="#steepest-descent">A norm defines what a small optimization step means</a></li>
+      <li><a href="#polar">An operator-norm budget produces a polar-factor update</a></li>
+      <li><a href="#normalizing-versus-polar">Dividing by the largest singular value is a different operation</a></li>
+      <li><a href="#muon">How this connects to Muon</a></li>
+      <li><a href="#architectural-roles">The norm must match the tensor's architectural role</a></li>
+      <li><a href="#isometry">Spectral feature scaling is different from dynamical isometry</a></li>
+      <li><a href="#experiment">A small experiment that distinguishes entries from action</a></li>
+      <li><a href="#takeaway">Five equations to remember</a></li>
+    </ol>
+  </nav>
+  <p class="lead">A matrix with tiny entries can still change a feature vector by order one. The missing information is how its entries cooperate: independent random weights, a learned outer product, and an orthogonalized update can have very different matrix actions at the same entry scale. Operator norms make that distinction explicit and give another route to maximal-update parametrization.</p>
+  <p class="small">The main reference is <a href="https://arxiv.org/abs/2310.17813">Yang, Simon, and Bernstein, <em>A Spectral Condition for Feature Learning</em></a>. The worked calculations below use dense MLP layers with RMS-normalized activations, fixed input/output dimensions where specified, and explicit optimizer conventions. They connect the <a href="tensor-programs-iv-v.html">coordinatewise μP derivation</a> to modern matrix-update geometry.</p>
+
+  <section id="matrix-action">
+    <h2>1. Entry size does not determine matrix action</h2>
+    <p>Take a width-\(n\) feature vector \(x\) with \(\|x\|=\Theta(\sqrt n)\). A square random matrix with independent centered entries of scale \(n^{-1/2}\) typically produces order-one output coordinates.</p>
+    <p>A learned rank-one update can do the same with entries a factor \(\sqrt n\) smaller. For example, let \(u,x\) both have order-one coordinates and set</p>
+    \[
+      \Delta W=\frac{\eta}{n}ux^\top.
+    \]
+    <p>Then</p>
+    \[
+      \Delta W x=\eta u\frac{\|x\|^2}{n}=\Theta(\eta)u.
+    \]
+    <p>Its entries are \(O(\eta/n)\), but its induced feature change has order-\(\eta\) coordinates. The update is correlated with the vector it acts on, so the inner product adds coherently.</p>
+    <p>This is the two-summation-law argument from <a href="tensor-programs-iv-v.html#two-laws">TP IV–V</a>. Spectral language expresses the same phenomenon without identifying a matrix with the size of one coordinate.</p>
+  </section>
+
+  <section id="rms-operator">
+    <h2>2. Measure features in RMS units</h2>
+    <p>For a vector \(x\in\mathbb R^p\), use</p>
+    \[
+      \|x\|_{\mathrm{RMS}}=\frac{\|x\|_2}{\sqrt p}.
+    \]
+    <p>An activation with order-one coordinates then has order-one RMS, regardless of width. Let \(W:\mathbb R^p\to\mathbb R^q\). Its induced RMS-to-RMS operator norm is</p>
+    \[
+      \begin{aligned}
+      \|W\|_{\mathrm{RMS}\to\mathrm{RMS}}
+      &=\sup_{x\neq0}\frac{\|Wx\|_2/\sqrt q}{\|x\|_2/\sqrt p}\\
+      &=\sqrt{\frac pq}\,\|W\|_{\mathrm{op}}.
+      \end{aligned}
+    \]
+    <p>Here \(\|\cdot\|_{\mathrm{op}}\) is the largest singular value. Keeping the normalized operator norm order one suggests</p>
+    \[
+      \boxed{\|W\|_{\mathrm{op}}=\Theta\!\left(\sqrt{\frac qp}\right).}
+    \]
+    <p>The aspect-ratio factor converts Euclidean vector length into per-coordinate feature size. A tall layer can have a growing Euclidean operator norm while still acting at a fixed scale in RMS units.</p>
+  </section>
+
+  <section id="update-condition">
+    <h2>3. Apply the same units to the update</h2>
+    <p>Holding a layer input fixed, its direct preactivation change is \(\Delta h=\Delta W x\). To allow an order-\(\eta\) feature update at every width, impose</p>
+    \[
+      \boxed{\|\Delta W\|_{\mathrm{op}}
+      =\Theta\!\left(\eta\sqrt{\frac qp}\right).}
+    \]
+    <p>This makes the upper bound</p>
+    \[
+      \|\Delta W x\|_{\mathrm{RMS}}
+      \leq\|\Delta W\|_{\mathrm{RMS}\to\mathrm{RMS}}\,
+      \|x\|_{\mathrm{RMS}}
+      =O(\eta)
+    \]
+    <p>independent of the layer dimensions. The spectral condition asks weights and updates to have compatible action scales; it does not ask their individual entries to have the same scale.</p>
+    <p>When earlier layers also change, the full preactivation update is</p>
+    \[
+      (W+\Delta W)(x+\Delta x)-Wx
+      =W\Delta x+\Delta W x+\Delta W\Delta x.
+    \]
+    <p>The final term matters for nonlinear parameter interactions. It is small in the base step \(\eta\) when both changes are small, but it need not shrink further merely because width grows. This is the kind of distinction that also matters in <a href="completep.html#two-weights">CompleteP's block calculation</a>.</p>
+  </section>
+
+  <section id="alignment">
+    <h2>4. An operator-norm bound is not a lower bound on learning</h2>
+    <p>Take unit vectors \(u,v\), and a nonzero input \(x\) orthogonal to \(v\). The matrix</p>
+    \[
+      \Delta W=\rho\,uv^\top
+    \]
+    <p>has operator norm \(\rho\), but \(\Delta W x=0\). The update has enough strength somewhere; it is simply pointed away from this input.</p>
+    <p>A useful alignment diagnostic is</p>
+    \[
+      A(\Delta W,x)=
+      \frac{\|\Delta W x\|_2}
+      {\|\Delta W\|_{\mathrm{op}}\|x\|_2}\in[0,1].
+    \]
+    <p>A nonvanishing \(A\) turns the spectral upper bound into the intended scale of actual feature movement. Nonlinear gates can introduce an additional attenuation afterward.</p>
+    <p>The spectral feature-learning analysis establishes this connection in specified training settings and uses additional assumptions when extending its elementary example. It is not a theorem that an arbitrary sequence of matrices with the right norms must learn useful features.</p>
+  </section>
+
+  <section id="rank-one">
+    <h2>5. A one-example SGD update has perfect alignment</h2>
+    <p>For a dense layer \(h=Wx\), let \(\delta=\nabla_h\mathcal L\). Its gradient is</p>
+    \[
+      G=\nabla_W\mathcal L=\delta x^\top,
+      \qquad \Delta W=-\eta_W\delta x^\top.
+    \]
+    <p>A rank-one matrix has one nonzero singular value, so</p>
+    \[
+      \|\Delta W\|_{\mathrm{op}}=\eta_W\|\delta\|\,\|x\|,
+      \qquad
+      \|\Delta W x\|=\eta_W\|\delta\|\,\|x\|^2.
+    \]
+    <p>Hence \(A(\Delta W,x)=1\), provided both vectors are nonzero. Training itself creates the alignment missing from the arbitrary counterexample.</p>
+    <p>With a batch of \(B\) examples, the gradient is a sum of \(B\) outer products and has rank at most \(B\). Different terms can reinforce or cancel each other. If batch size or the number of accumulated steps grows with width, fixed-rank intuition needs to be checked again.</p>
+    <p>Adam's elementwise rescaling and a weight-decay term can also change matrix rank and geometry. The rank-one statement is exact for this plain one-example gradient; it should not be silently transferred to every optimizer update.</p>
+  </section>
+
+  <section id="stable-rank">
+    <h2>6. Stable rank connects entry size to operator norm</h2>
+    <p>For a nonzero matrix, define</p>
+    \[
+      \operatorname{srank}(W)=
+      \frac{\|W\|_F^2}{\|W\|_{\mathrm{op}}^2}
+      =\frac{\sum_i s_i^2}{s_{\max}^2}.
+    \]
+    <p>Stable rank measures how many top-sized singular directions would account for the matrix's total squared magnitude. It can be much smaller than algebraic rank when most singular values are tiny.</p>
+    <p>For a \(q\times p\) matrix, its RMS entry size is exactly</p>
+    \[
+      \operatorname{RMSentries}(W)
+      =\frac{\|W\|_F}{\sqrt{pq}}
+      =\|W\|_{\mathrm{op}}
+      \sqrt{\frac{\operatorname{srank}(W)}{pq}}.
+    \]
+    <p>For a square matrix with order-one operator norm, a high-stable-rank random initialization has entry size \(n^{-1/2}\); a rank-one update has entry size \(n^{-1}\).</p>
+    <div class="keyidea"><strong>Why small entries can matter.</strong> The initialization spreads its action across many singular directions. A learned low-rank update concentrates its action in a few. The latter needs much less total entrywise magnitude to have the same strongest effect on features.</div>
+  </section>
+
+  <section id="initialization">
+    <h2>7. Recover the initialization scales</h2>
+    <p>Let \(W_{ij}\) be independent centered Gaussians with standard deviation \(\sigma\). Its operator-norm scale is \(\sigma(\sqrt p+\sqrt q)\). Matching the RMS operator prescription gives</p>
+    \[
+      \sigma=\Theta\!\left(
+      \frac{\sqrt{q/p}}{\sqrt p+\sqrt q}\right)
+      =\Theta\!\left(\frac{\sqrt{\min(p,q)}}{p}\right).
+    \]
+    <p>Only dimension exponents are specified; activation-dependent and aspect-ratio-dependent order-one constants remain to be chosen.</p>
+    <p>For an MLP with fixed input dimension \(d\), hidden width \(n\), and one output, this yields</p>
+    \[
+      W_1:n\times d,\quad \sigma_1=\Theta(d^{-1/2});
+      \qquad W_2:n\times n,\quad \sigma_2=\Theta(n^{-1/2});
+    \]
+    \[
+      W_3:1\times n,\qquad \sigma_3=\Theta(n^{-1}).
+    \]
+    <p>The small readout now has a direct spectral explanation. A scalar output has Euclidean and RMS size equal, while a hidden input has Euclidean size \(\Theta(\sqrt n)\). A readout norm of \(\Theta(n^{-1/2})\) bounds the output even when the hidden representation aligns with the readout.</p>
+  </section>
+
+  <section id="small-readout">
+    <h2>8. Why the random initial readout can vanish</h2>
+    <p>Under the previous readout scaling, independent entries of size \(1/n\) acting on an independent order-one feature vector give</p>
+    \[
+      \operatorname{Var}(W_3x)=\Theta(1/n).
+    \]
+    <p>The initial output therefore vanishes in probability under these centered initialization assumptions. The spectral upper bound is order one, but a random initial vector does not saturate it.</p>
+    <p>After learning, a readout can correlate with the features that generated its update. A one-example readout step is</p>
+    \[
+      \Delta W_3=-\frac{\eta}{n}r x^\top,\qquad
+      \Delta f=-\eta r\frac{\|x\|^2}{n}=O(\eta).
+    \]
+    <p>Thus an initially small random function can acquire an order-one learned response without increasing the readout's width exponent. This is why requiring order-one random output variance at all costs would choose the wrong criterion for this feature-learning scaling.</p>
+    <p>The <a href="mean-field-feature-learning.html#zero-output">mean-field population calculation</a> provides the same example in distributional coordinates.</p>
+  </section>
+
+  <section id="sgd">
+    <h2>9. Recover the SGD learning rates</h2>
+    <p>Use a scalar loss with order-one output derivative. In the two-hidden-layer μP MLP at a generic initialization, backpropagated hidden coordinates are of scale \(1/n\). Their Euclidean norms are therefore of scale \(n^{-1/2}\). Hidden activation norms are of scale \(\sqrt n\).</p>
+    <p>For one example, \(G_\ell=\delta_\ell x_{\ell-1}^\top\). With fixed \(d\), the gradient operator-norm scales are</p>
+    \[
+      \|G_1\|_{\mathrm{op}}=\Theta(n^{-1/2}),\qquad
+      \|G_2\|_{\mathrm{op}}=\Theta(1),\qquad
+      \|G_3\|_{\mathrm{op}}=\Theta(\sqrt n).
+    \]
+    <p>The desired update norms are respectively \(\Theta(\eta\sqrt n)\), \(\Theta(\eta)\), and \(\Theta(\eta/\sqrt n)\), suppressing constants in \(d\). Dividing target update norm by gradient norm gives</p>
+    \[
+      \boxed{\eta_{W_1}=\eta n,\qquad
+      \eta_{W_2}=\eta,\qquad
+      \eta_{W_3}=\eta/n.}
+    \]
+    <p>These are the same rates derived coordinate by coordinate in <a href="tensor-programs-iv-v.html#table">TP IV–V</a>. They are for the effective weight matrices appearing directly in the forward map, rather than arbitrary stored tensors with additional multipliers.</p>
+    <p>The first-step derivation assumes nonzero generic gradients. Extending it throughout training requires controlling the feature and gradient scales, not merely reusing an independence assumption from initialization.</p>
+  </section>
+
+  <section id="norm-table">
+    <h2>10. The hidden layer in one table</h2>
+    <div class="table-scroll" role="region" aria-label="Hidden initialization and update norms" tabindex="0"><table>
+      <caption>Square width-\(n\) matrices; base learning-rate constants are suppressed.</caption>
+      <thead><tr><th scope="col">Quantity</th><th scope="col">Random μP initialization</th><th scope="col">One-example μP SGD update</th></tr></thead>
+      <tbody>
+        <tr><td>RMS entry size</td><td>\(\Theta(n^{-1/2})\)</td><td>\(\Theta(n^{-1})\)</td></tr>
+        <tr><td>Frobenius norm</td><td>\(\Theta(\sqrt n)\)</td><td>\(\Theta(1)\)</td></tr>
+        <tr><td>Operator norm</td><td>\(\Theta(1)\)</td><td>\(\Theta(1)\)</td></tr>
+        <tr><td>Stable rank</td><td>\(\Theta(n)\)</td><td>\(1\)</td></tr>
+        <tr><td>Action on a relevant feature</td><td>Order-one coordinates</td><td>Order-one coordinates</td></tr>
+      </tbody>
+    </table></div>
+    <p>The update-to-weight ratio tends to zero in Frobenius norm, while the ratio of their operator norms stays order one. Calling the network “lazy” solely because its weights move little relative to their Frobenius norm would miss the order-one feature response.</p>
+    <p>This is why the <a href="ntk-and-lazy-training.html#diagnostics">NTK note</a> recommends checking the tangent approximation and actual feature movement. Parameter displacement is meaningful only together with its geometry and its effect on the function.</p>
+  </section>
+
+  <section id="adam">
+    <h2>11. Adam keeps the target update scale but changes the raw rates</h2>
+    <p>At the first step of Adam with zero initial moments and negligible epsilon, bias correction gives a coordinate update proportional to \(-\eta_W\operatorname{sign}(G_{ij})\). For a one-example outer product,</p>
+    \[
+      \operatorname{sign}(\delta x^\top)
+      =\operatorname{sign}(\delta)\operatorname{sign}(x)^\top
+    \]
+    <p>when the entries are nonzero. This sign matrix has operator norm \(\sqrt{pq}\). Requiring its scaled update to have norm \(\eta\sqrt{q/p}\) gives \(\eta_W=\eta/p\), up to width-independent constants.</p>
+    <p>Consequently, in the same effective-weight convention as §9:</p>
+    <div class="table-scroll" role="region" aria-label="SGD and Adam learning-rate width exponents" tabindex="0"><table>
+      <thead><tr><th scope="col">Layer</th><th scope="col">SGD rate</th><th scope="col">Adam rate</th></tr></thead>
+      <tbody>
+        <tr><td>Input, fixed \(d\)</td><td>\(\eta n\)</td><td>\(\eta\)</td></tr>
+        <tr><td>Hidden, \(n\times n\)</td><td>\(\eta\)</td><td>\(\eta/n\)</td></tr>
+        <tr><td>Effective readout, \(1\times n\)</td><td>\(\eta/n\)</td><td>\(\eta/n\)</td></tr>
+      </tbody>
+    </table></div>
+    <p>Later Adam updates are not generally rank one, and coordinatewise division does not preserve singular vectors. The first-step argument makes the change in width exponents intuitive; it is not a complete derivation of every adaptive training trajectory. Epsilon, moment histories, clipping, and weight decay must be included when checking an implementation.</p>
+  </section>
+
+  <section id="coordinates">
+    <h2>12. Equivalent forward coordinates need equivalent optimizer coordinates</h2>
+    <p>Let an effective weight be \(W=su\), with \(s&gt;0\). Then \(\nabla_u\mathcal L=s\nabla_W\mathcal L\). For SGD,</p>
+    \[
+      \Delta W=s\Delta u=-\eta_u s^2\nabla_W\mathcal L,
+      \qquad \eta_W=s^2\eta_u.
+    \]
+    <p>For Adam, if the corresponding moment states scale as \(m_u=sm_W\), \(v_u=s^2v_W\), and epsilon is negligible, the gradient normalization cancels one factor of \(s\):</p>
+    \[
+      \eta_W=s\eta_u.
+    \]
+    <p>With non-negligible epsilon, exact matching of this gradient part requires \(\epsilon_u=s\epsilon_W\). A separate weight-decay term must also be transformed so its effective shrinkage agrees.</p>
+    <p>This is why two μP tables can list different stored initialization variances and learning rates while producing the same effective dynamics. To compare them, first write the forward multiplier and identify which tensor the optimizer actually updates.</p>
+    <p>The readout convention in the <a href="completep.html#recipe">CompleteP table</a> includes an explicit multiplier; its numerical stored-readout rate should not be compared directly with the effective-readout row above.</p>
+  </section>
+
+  <section id="steepest-descent">
+    <h2>13. A norm defines what a small optimization step means</h2>
+    <p>Let \(G=\nabla_W\mathcal L\). The first-order loss change is \(\langle G,\Delta W\rangle_F=\operatorname{tr}(G^\top\Delta W)\). A trust-region version of steepest descent solves</p>
+    \[
+      \min_{\|\Delta W\|\leq\rho}\langle G,\Delta W\rangle_F.
+    \]
+    <p>The norm determines which steps are considered equally small. Under a Frobenius-norm budget, the solution is</p>
+    \[
+      \Delta W=-\rho\,\frac{G}{\|G\|_F}.
+    \]
+    <p>Ordinary SGD instead follows from the quadratically penalized problem</p>
+    \[
+      \min_{\Delta W}\left\{\langle G,\Delta W\rangle_F
+      +\frac1{2\eta}\|\Delta W\|_F^2\right\},
+      \qquad \Delta W=-\eta G.
+    \]
+    <p>A coordinatewise maximum-entry budget gives a sign direction. An operator-norm budget gives a different matrix direction, derived next. These are different geometries of first-order descent, not necessarily approximations to the same Hessian inverse.</p>
+    <p><a href="https://arxiv.org/abs/2409.20325">Bernstein and Newhouse, <em>Old Optimizer, New Norm</em></a> develop this perspective and emphasize assigning norms according to each tensor's role.</p>
+  </section>
+
+  <section id="polar">
+    <h2>14. An operator-norm budget produces a polar-factor update</h2>
+    <p>Let the compact SVD of a nonzero gradient be \(G=U_r\Sigma_rV_r^\top\), containing only its positive singular values \(\sigma_1,\ldots,\sigma_r\). Under \(\|\Delta W\|_{\mathrm{op}}\leq\rho\),</p>
+    \[
+      \langle G,\Delta W\rangle_F
+      =\sum_{i=1}^r\sigma_i\,u_i^\top\Delta Wv_i
+      \geq-\rho\sum_{i=1}^r\sigma_i.
+    \]
+    <p>Every term reaches its lower bound for</p>
+    \[
+      \boxed{\Delta W=-\rho\,U_rV_r^\top.}
+    \]
+    <p>This matrix has singular value \(\rho\) in each supported gradient direction. For a rank-deficient gradient, the optimum need not be unique on null subspaces; the compact polar factor is one valid choice.</p>
+    <p>The minimum first-order loss change is \(-\rho\|G\|_*\), where \(\|G\|_*=\sum_i\sigma_i\) is the nuclear norm. Here the star denotes the nuclear norm; the spectral norm is consistently written \(\|\cdot\|_{\mathrm{op}}\) in this note.</p>
+    <p>If the budget is stated in RMS operator units, \(\|\Delta W\|_{\mathrm{RMS}\to\mathrm{RMS}}\leq\eta\), then \(\rho=\eta\sqrt{q/p}\). This separates the update's matrix direction from its dimensional scale.</p>
+  </section>
+
+  <section id="normalizing-versus-polar">
+    <h2>15. Dividing by the largest singular value is a different operation</h2>
+    <p>Take \(G=\operatorname{diag}(3,1)\). Two matrices with operator norm one are</p>
+    \[
+      \frac{G}{\|G\|_{\mathrm{op}}}
+      =\operatorname{diag}(1,1/3),
+      \qquad
+      U_rV_r^\top=I.
+    \]
+    <p>Scalar spectral normalization preserves the ratio of singular values. The polar operation equalizes the nonzero singular values. They satisfy the same largest-singular-value bound but spend that budget differently across directions.</p>
+    <p>Under a radius-one operator-norm constraint, their first-order decreases are respectively \(10/3\) and \(4\). The polar factor is the steepest choice for this linearized objective and this constraint.</p>
+    <p>This is not a guarantee of a better finite step: curvature and noise can make aggressive motion in weak gradient directions undesirable. Momentum, regularization, approximate matrix operations, and the learning-rate schedule all affect an actual optimizer.</p>
+  </section>
+
+  <section id="muon">
+    <h2>16. How this connects to Muon</h2>
+    <p>Muon forms a momentum-based update matrix and approximately orthogonalizes it using a small number of Newton–Schulz-style matrix iterations. The polar-factor calculation explains the geometry behind idealized orthogonalized descent. <a href="https://kellerjordan.github.io/posts/muon/">Keller Jordan's original description</a> explains the implementation and its practical choices.</p>
+    <p>With momentum, the orthogonalized matrix need not be the steepest direction for the instantaneous gradient. Finite-iteration implementations also need not return the exact polar factor. The derivation in §14 should therefore be treated as an explanatory idealization, not a literal specification of every Muon implementation.</p>
+    <p>Shape-dependent scaling still matters. A full-rank polar factor for a \(q\times p\) matrix has Frobenius norm \(\sqrt{\min(p,q)}\), so a unit RMS-operator update has RMS entry size</p>
+    \[
+      \eta\sqrt{\frac qp}\,
+      \frac{\sqrt{\min(p,q)}}{\sqrt{pq}}
+      =\eta\frac{\sqrt{\min(p,q)}}{p}.
+    \]
+    <p>For a square matrix this is \(\eta/\sqrt n\), whereas a low-rank μP SGD update has entries of scale \(\eta/n\). Both can have order-\(\eta\) operator norm. Their different ranks explain the different entry scales.</p>
+    <p><a href="https://arxiv.org/abs/2502.16982">Liu et al., <em>Muon is Scalable for LLM Training</em></a> study update-scale adjustments and weight decay at language-model scale. Their results do not identify every practical Muon scaling convention with the particular RMS-operator prescription derived here.</p>
+  </section>
+
+  <section id="architectural-roles">
+    <h2>17. The norm must match the tensor's architectural role</h2>
+    <p>The dense-layer argument assumed the input had order-one RMS. An embedding lookup receives a one-hot vector, whose Euclidean norm is one regardless of vocabulary size. Multiplying by its embedding matrix selects one column.</p>
+    <p>A relevant operator norm for a matrix \(E:\mathbb R^V\to\mathbb R^n\) is then</p>
+    \[
+      \|E\|_{1\to\mathrm{RMS}}
+      =\max_j\frac{\|E_{:j}\|_2}{\sqrt n}.
+    \]
+    <p>This controls the RMS of every selected embedding column. Treating a one-hot input as a dense RMS-one vector would introduce a spurious vocabulary-size factor.</p>
+    <p>Biases and normalization gains also have different actions: a bias is added directly, and a gain multiplies coordinates individually. Their updates do not receive the same coherent fan-in sum as a dense matrix.</p>
+    <p>Attention and residual stacks bring further structure. Projection matrices are only part of a map containing dot products, softmax, token mixing, and depthwise additions. A correct norm for one matrix does not automatically establish stable scaling of the whole architecture.</p>
+  </section>
+
+  <section id="isometry">
+    <h2>18. Spectral feature scaling is different from dynamical isometry</h2>
+    <p>The present criterion controls the largest singular value of a weight or update in suitable units. <a href="dynamical-isometry.html">Dynamical isometry</a> concerns the full singular-value distribution of an input-output activation Jacobian.</p>
+    <p>A rank-one update can be ideal for producing an order-one change on its training example while having zero action on almost every orthogonal direction. There is no contradiction: an update need not preserve every direction to improve a representation.</p>
+    <p>Conversely, perfectly orthogonal initial weights do not prescribe how learning-rate scales should change with width. A poor optimizer scaling can still freeze features or make updates diverge.</p>
+    <div class="keyidea"><strong>Three separate checks.</strong> Examine weight action at initialization, update action during learning, and the full network's sensitivity across depth. None of these matrices can stand in for the other two.</div>
+  </section>
+
+  <section id="experiment">
+    <h2>19. A small experiment that distinguishes entries from action</h2>
+    <p>For each width \(n\), sample independent standard Gaussian vectors \(u,x\) and an independent Gaussian matrix \(W\) with entry variance \(1/n\). Form \(A=ux^\top/n\). Then measure</p>
+    \[
+      \operatorname{RMSentries}(W),\quad
+      \operatorname{RMSentries}(A),\quad
+      \|W\|_{\mathrm{op}},\quad\|A\|_{\mathrm{op}},\quad
+      \frac{\|Ax\|}{\sqrt n}.
+    \]
+    <p>The matrix \(A\) has exact operator norm \(\|u\|\|x\|/n\). Its entries shrink like \(1/n\), but its action on \(x\) has order-one RMS. Acting on an independent Gaussian vector \(x'\) instead gives order-\(n^{-1/2}\) RMS, exposing the role of alignment.</p>
+    <p>For a training diagnostic, use the MLP and effective-coordinate SGD rates in §9. Across widths, record weight and update operator norms in RMS units, stable rank, alignment with the current layer input, and actual feature changes. Hold input dimension, batch size, loss reduction, and the number of steps fixed.</p>
+    <p>These are proposed checks rather than reported training measurements. They can reveal an incorrect exponent, but stable norms alone do not establish useful feature learning or successful hyperparameter transfer.</p>
+  </section>
+
+  <section id="takeaway">
+    <h2>20. Five equations to remember</h2>
+    <div class="equation-summary">
+      \[\boxed{\|W\|_{\mathrm{RMS}\to\mathrm{RMS}}=\sqrt{p/q}\,\|W\|_{\mathrm{op}}}\]
+      \[\boxed{\|W\|_{\mathrm{op}}=\Theta(\sqrt{q/p}),\quad
+      \|\Delta W\|_{\mathrm{op}}=\Theta(\eta\sqrt{q/p})}\]
+      \[\boxed{\operatorname{RMSentries}(W)=\|W\|_{\mathrm{op}}
+      \sqrt{\operatorname{srank}(W)/(pq)}}\]
+      \[\boxed{\Delta W=-\eta_W\delta x^\top,\quad
+      \|\Delta W x\|=\|\Delta W\|_{\mathrm{op}}\|x\|}\]
+      \[\boxed{\arg\min_{\|\Delta W\|_{\mathrm{op}}\leq\rho}
+      \langle G,\Delta W\rangle_F\ \ni\ -\rho U_rV_r^\top}\]
+    </div>
+    <p>RMS units explain the aspect-ratio factor. Stable rank explains the difference between initialization and update entry scales. Gradient alignment turns available matrix strength into feature movement. The polar factor shows how a choice of norm can also determine an optimizer's direction.</p>
+  </section>
+
+  <section id="references">
+    <h2>References</h2>
+    <ol class="refs">
+      <li>Greg Yang, James B. Simon, and Jeremy Bernstein. <em>A Spectral Condition for Feature Learning</em>. 2023, revised 2024. <a href="https://arxiv.org/abs/2310.17813">Paper</a>. Spectral scaling, stable rank, alignment, and the connection to μP.</li>
+      <li>Greg Yang and Edward J. Hu. <em>Tensor Programs IV: Feature Learning in Infinite-Width Neural Networks</em>. ICML 2021. <a href="https://proceedings.mlr.press/v139/yang21c.html">Paper</a>.</li>
+      <li>Greg Yang et al. <em>Tensor Programs V: Tuning Large Neural Networks via Zero-Shot Hyperparameter Transfer</em>. 2022. <a href="https://arxiv.org/abs/2203.03466">Paper</a>. Equivalent parametrization conventions and optimizer-dependent tables.</li>
+      <li>Jeremy Bernstein and Laker Newhouse. <em>Old Optimizer, New Norm: An Anthology</em>. 2024. <a href="https://arxiv.org/abs/2409.20325">Paper</a>. Norm-dependent steepest descent and tensor roles.</li>
+      <li>Keller Jordan. <em>Muon: An optimizer for hidden layers in neural networks</em>. 2024, subsequently updated. <a href="https://kellerjordan.github.io/posts/muon/">Author's description</a>. Momentum, approximate orthogonalization, and implementation details.</li>
+      <li>Jingyuan Liu et al. <em>Muon is Scalable for LLM Training</em>. 2025. <a href="https://arxiv.org/abs/2502.16982">Paper</a>. Large-model update scaling and weight decay.</li>
+    </ol>
+    <p class="small">These are expository working notes. The one-example SGD and operator-ball calculations are exact in their stated settings. General feature-learning conclusions require alignment, nondegenerate activations, and control of training dynamics in addition to dimensionally correct norm scales.</p>
+  </section>
+
+  <p class="related">Companion notes: <a href="ntk-and-lazy-training.html">NNGP, NTK, and lazy training</a> · <a href="mean-field-feature-learning.html">Mean-field feature learning</a> · <a href="normalization-and-residual-parametrization.html">Normalization and residual parametrization</a> · <a href="dynamical-isometry.html">Dynamical isometry</a>.</p>
+</main>
+<footer>
+  <a href="../../index.html">dmartinezt.github.io</a> · research notes
+</footer>
+</body>
+</html>

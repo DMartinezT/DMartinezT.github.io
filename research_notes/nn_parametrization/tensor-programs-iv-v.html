@@ -1,0 +1,746 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#000000">
+  <script src="../../theme.js"></script>
+  <meta name="description" content="Expository research notes on Tensor Programs IV and V: why maximal-update parametrization uses its characteristic width scalings, and why those scalings enable muTransfer.">
+  <title>Tensor Programs IV &amp; V: why μP and μTransfer work</title>
+  <link rel="stylesheet" href="../../styles.css">
+  <script src="../../assets/math-network.js" defer></script>
+  <script src="../../background.js" defer></script>
+  <style>
+    :root {
+      --bg: var(--background);
+      --ink: var(--text);
+      --rule: var(--line);
+      --link: var(--blue);
+      --box-bg: var(--surface);
+      --box-border: var(--line);
+      --code-bg: var(--surface);
+      --max: 790px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: 0; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Georgia, "Times New Roman", Times, serif;
+      font-size: 18px;
+      line-height: 1.68;
+      -webkit-font-smoothing: antialiased;
+    }
+    main, header, footer {
+      width: min(var(--max), calc(100% - 38px));
+      margin-left: auto;
+      margin-right: auto;
+    }
+    header { padding: 42px 0 24px; border-bottom: 1px solid var(--rule); }
+    .site-link {
+      display: inline-block;
+      margin-bottom: 30px;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 0.82rem;
+      letter-spacing: .02em;
+    }
+    h1, h2, h3 {
+      font-family: Georgia, "Times New Roman", Times, serif;
+      line-height: 1.22;
+      font-weight: 600;
+      scroll-margin-top: 18px;
+    }
+    h1 { font-size: clamp(2.15rem, 7vw, 3.45rem); margin: 0 0 12px; letter-spacing: -0.025em; }
+    h2 { font-size: 1.62rem; margin: 2.7em 0 .65em; }
+    h3 { font-size: 1.22rem; margin: 2em 0 .45em; }
+    p { margin: 1em 0; }
+    .subtitle { font-size: 1.18rem; color: var(--muted); max-width: 690px; margin: 0 0 12px; }
+    .meta {
+      color: var(--muted);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: .84rem;
+    }
+    main { padding: 28px 0 74px; }
+    a { color: var(--link); text-decoration: underline; text-underline-offset: 0.16em; }
+    a:hover { text-decoration-thickness: 2px; }
+    .toc {
+      border-bottom: 1px solid var(--rule);
+      padding: 0 0 24px;
+      margin-bottom: 34px;
+    }
+    .toc strong {
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: .86rem;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+    .toc ol { margin: 10px 0 0 1.25em; padding: 0; }
+    .toc li { margin: 2px 0; }
+    .toc a { text-decoration: none; }
+    .lead { font-size: 1.08em; }
+    .keyidea, .remark {
+      margin: 1.55em 0;
+      padding: 14px 18px;
+      border-left: 3px solid var(--box-border);
+      background: var(--box-bg);
+    }
+    .keyidea strong, .remark strong {
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: .86rem;
+      letter-spacing: .035em;
+      text-transform: uppercase;
+    }
+    .equation-summary {
+      margin: 1.8em 0;
+      padding: 17px 20px;
+      border: 1px solid var(--box-border);
+      background: var(--box-bg);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1.35em 0 1.7em;
+      font-size: .96em;
+    }
+    th, td { border-bottom: 1px solid var(--rule); padding: 9px 10px; text-align: left; vertical-align: top; }
+    th { font-weight: 600; }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: .88em;
+      background: var(--code-bg);
+      padding: .08em .28em;
+      border-radius: 3px;
+    }
+    .refs { font-size: .94em; }
+    .refs li { margin-bottom: .75em; }
+    .small { color: var(--muted); font-size: .93em; }
+    footer {
+      border-top: 1px solid var(--rule);
+      padding: 22px 0 40px;
+      color: var(--muted);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: .82rem;
+    }
+    @media (max-width: 620px) {
+      body { font-size: 17px; }
+      header { padding-top: 28px; }
+      .site-link { margin-bottom: 22px; }
+      th, td { padding-left: 6px; padding-right: 6px; }
+    }
+    @media print {
+      :root { --bg: #fff; --ink: #000; --muted: #444; --rule: #bbb; --link: #000; --box-bg: #fff; --box-border: #888; }
+      body { font-size: 11.5pt; }
+      .site-link, .toc, .math-background { display: none; }
+      header { padding-top: 0; }
+      main, header, footer { width: 100%; }
+      a { text-decoration: none; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+    }
+  </style>
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(','\\)']],
+        displayMath: [['\\[','\\]']],
+        macros: {
+          mup: '\\mu\\mathrm{P}',
+          mutransfer: '\\mu\\mathrm{Transfer}',
+          E: '\\mathbb{E}'
+        }
+      },
+      options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+    };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+</head>
+<body>
+<div class="math-background" aria-hidden="true"><canvas id="math-background"></canvas></div>
+<header>
+  <div class="note-toolbar">
+    <a class="site-link" href="../../index.html#notes">← Research notes</a>
+    <div class="theme-controls" role="group" aria-label="Appearance" hidden>
+      <button class="theme-toggle" data-theme-toggle type="button" aria-label="Switch to night mode"><span class="theme-icon" data-theme-icon aria-hidden="true">☾</span><span data-theme-label>Night</span></button>
+      <button class="theme-auto" data-theme-auto type="button" aria-pressed="true" aria-label="Use local time for day and night" title="Follow local time: day from 7 a.m. to 7 p.m.">Auto</button>
+    </div>
+  </div>
+  <h1>Tensor Programs IV &amp; V: why μP and μTransfer work</h1>
+  <p class="subtitle">A width-scaling derivation of the μP initialization and SGD learning-rate rules for a three-layer MLP, and why those normalized coordinates are the right ones for zero-shot hyperparameter transfer.</p>
+  <div class="meta">Research notes · 17 September 2026</div>
+</header>
+
+<main>
+  <nav class="toc" aria-label="Table of contents">
+    <strong>Contents</strong>
+    <ol>
+      <li><a href="#big-picture">The big picture</a></li>
+      <li><a href="#two-laws">The two widthwise summation laws</a></li>
+      <li><a href="#mlp">A three-layer MLP</a></li>
+      <li><a href="#init-w1">Why the input weights are order one</a></li>
+      <li><a href="#init-w2">Why hidden weights are order \(n^{-1/2}\)</a></li>
+      <li><a href="#init-w3">Why output weights are order \(n^{-1}\)</a></li>
+      <li><a href="#lr-w3">Why the output-layer SGD LR is \(\eta/n\)</a></li>
+      <li><a href="#lr-w2">Why the hidden-layer SGD LR is \(\eta\)</a></li>
+      <li><a href="#lr-w1">Why the input-layer SGD LR is \(\eta n\)</a></li>
+      <li><a href="#table">The whole scaling in one table</a></li>
+      <li><a href="#sp-fails">Why standard parametrization fails</a></li>
+      <li><a href="#maximal">Why it is called maximal update</a></li>
+      <li><a href="#abc">How this matches TP IV's abc-parametrization</a></li>
+      <li><a href="#equivalent-forms">Equivalent ways to write μP</a></li>
+      <li><a href="#transfer">From TP IV to TP V: why μTransfer is plausible</a></li>
+      <li><a href="#copy">What actually gets transferred</a></li>
+      <li><a href="#limits">Why an arbitrary infinite-width limit is not enough</a></li>
+      <li><a href="#vi-analogy">The common principle behind IV and VI</a></li>
+      <li><a href="#takeaway">Five equations to remember</a></li>
+    </ol>
+  </nav>
+
+  <p class="lead">The cleanest way I have found to understand <em>Tensor Programs IV</em> is to see μP as the <em>critical width scaling</em> at which every layer can still move features by an order-one amount without making the network blow up. <em>Tensor Programs V</em> then notices that, in these normalized coordinates, a master hyperparameter such as the learning rate keeps the same dynamical meaning as width changes. That is the mechanism behind μTransfer.</p>
+
+  <p class="small">Companion note: <a href="deep-information-propagation.html#tensor-programs">Deep information propagation</a> explains the initialization-side variance and gradient calculations, and why they do not by themselves select a feature-learning parametrization.</p>
+
+  <section id="big-picture">
+    <h2>1. The big picture</h2>
+    <p>Schematically, the story is</p>
+    \[
+      \boxed{\text{TP IV: find the critical infinite-width feature-learning scaling}}
+      \;\longrightarrow\;
+      \boxed{\text{TP V: use those normalized coordinates for hyperparameter transfer}}.
+    \]
+    <p>There is a direct analogy with the depth story in TP VI. In width, the key distinction is between sums of <em>fresh random</em> contributions and sums of <em>learned correlated</em> contributions. The former accumulate like \(\sqrt n\); the latter can accumulate like \(n\).</p>
+
+    <div class="keyidea"><strong>Key idea.</strong> Initialization is governed by CLT scaling. Training updates are structured outer products and therefore interact coherently with the features that created them. The two effects generally require different powers of width.</div>
+  </section>
+
+  <section id="two-laws">
+    <h2>2. The two widthwise summation laws</h2>
+    <p>Suppose \(x\in\mathbb{R}^n\) has order-one coordinates.</p>
+
+    <h3>Fresh Gaussian matrix: \(\sqrt n\) accumulation</h3>
+    <p>If \(W\in\mathbb{R}^{n\times n}\) has independent zero-mean entries and is essentially independent of \(x\), then each coordinate of \(Wx\) is a random sum. If \(W_{ij}=O(n^{-1/2})\), then</p>
+    \[
+      (Wx)_i
+      =\sum_{j=1}^n W_{ij}x_j
+      \sim \sqrt n\times n^{-1/2}
+      =O(1).
+    \]
+    <p>This is the familiar Xavier/LeCun/CLT rule.</p>
+
+    <h3>Learned outer-product matrix: \(n\) accumulation</h3>
+    <p>A one-sample SGD update to a hidden matrix has the form</p>
+    \[
+      \Delta W\propto \delta x^\top.
+    \]
+    <p>When this acts on the same feature vector \(x\),</p>
+    \[
+      (\delta x^\top)x
+      =\delta\,\|x\|^2.
+    \]
+    <p>Since \(\|x\|^2=\Theta(n)\), this is an \(n\)-sized coherent accumulation. There is no \(\sqrt n\) cancellation because the update is built from the very feature vector it later acts on.</p>
+
+    <div class="remark"><strong>Mnemonic.</strong> A random Gaussian matrix acting on an activation uses CLT scaling. A trained outer-product matrix acting on a correlated activation uses LLN/coherent scaling.</div>
+  </section>
+
+  <section id="mlp">
+    <h2>3. A three-layer MLP</h2>
+    <p>Consider a two-hidden-layer MLP of width \(n\):</p>
+    \[
+      h_1=W_1\xi,\qquad x_1=\phi(h_1),
+    \]
+    \[
+      h_2=W_2x_1,\qquad x_2=\phi(h_2),
+    \]
+    \[
+      f=W_3x_2.
+    \]
+    <p>Take</p>
+    \[
+      W_1\in\mathbb{R}^{n\times d},\qquad
+      W_2\in\mathbb{R}^{n\times n},\qquad
+      W_3\in\mathbb{R}^{1\times n},
+    \]
+    <p>where the input dimension \(d\) is fixed while \(n\to\infty\).</p>
+    <p>The μP design criterion is: choose initialization and learning-rate scales so that hidden activations stay order one, the output does not blow up, and every layer can still induce an order-one change in the features it controls.</p>
+  </section>
+
+  <section id="init-w1">
+    <h2>4. Why the input weights are order one</h2>
+    <p>For one coordinate of the first preactivation,</p>
+    \[
+      (h_1)_i=\sum_{j=1}^d (W_1)_{ij}\xi_j.
+    \]
+    <p>There are only \(d=O(1)\) terms. No width-sized sum appears. Therefore we simply need the entries of \(W_1\) to stay order one with respect to \(n\). With standard fan-in normalization,</p>
+    \[
+      \boxed{(W_1)_{ij}\sim\mathcal N\!\left(0,\frac1d\right)}.
+    \]
+    <p>Then each coordinate of \(h_1\) is \(O(1)\).</p>
+  </section>
+
+  <section id="init-w2">
+    <h2>5. Why hidden weights are order \(n^{-1/2}\)</h2>
+    <p>The second layer sees a width-\(n\) input:</p>
+    \[
+      (h_2)_i=\sum_{j=1}^n (W_2)_{ij}(x_1)_j.
+    \]
+    <p>At initialization, \(W_2\) is a fresh random matrix and is approximately independent of \(x_1\). Therefore these \(n\) terms add like a random walk. To obtain an order-one preactivation, take</p>
+    \[
+      (W_2)_{ij}=O(n^{-1/2}),
+    \]
+    <p>equivalently</p>
+    \[
+      \boxed{(W_2)_{ij}\sim\mathcal N\!\left(0,\frac1n\right)}.
+    \]
+    <p>This part of μP is ordinary fan-in initialization.</p>
+  </section>
+
+  <section id="init-w3">
+    <h2>6. Why output weights are order \(n^{-1}\)</h2>
+    <p>The surprising layer is the readout:</p>
+    \[
+      f=\sum_{i=1}^n (W_3)_i(x_2)_i.
+    \]
+    <p>At initialization alone, the usual CLT argument would suggest \((W_3)_i=O(n^{-1/2})\). That indeed produces an order-one random output initially.</p>
+    <p>But feature-learning theory cares about the <em>training trajectory</em>, not only the first forward pass. After training begins, \(W_3\) and \(x_2\) become correlated. A correlated sum can add like \(n\), so the critical scale for an output vector that must remain stable under training is</p>
+    \[
+      \boxed{(W_3)_i=O(n^{-1})}.
+    \]
+    <p>In the convenient TP V formulation,</p>
+    \[
+      \boxed{(W_3)_i\sim\mathcal N\!\left(0,\frac1{n^2}\right)}.
+    \]
+    <p>Because initialization is still random and centered, this means the initial logit is actually smaller:</p>
+    \[
+      f_0\sim \sqrt n\,\frac1n=\frac1{\sqrt n}\longrightarrow 0.
+    \]
+    <p>This is intentional. TP IV proves, within its class of stable nontrivial feature-learning parametrizations, that the infinite-width initial output must vanish.</p>
+
+    <div class="keyidea"><strong>Interpretation.</strong> μP deliberately makes the random readout subcritical at initialization so that the <em>learned correlated signal</em> can later accumulate at the critical order-one scale.</div>
+  </section>
+
+  <section id="lr-w3">
+    <h2>7. Why the output-layer SGD learning rate is \(\eta/n\)</h2>
+    <p>Let</p>
+    \[
+      \chi=\frac{\partial\ell}{\partial f}=O(1).
+    \]
+    <p>The output gradient is</p>
+    \[
+      \nabla_{W_3}\ell=\chi x_2^\top.
+    \]
+    <p>Each coordinate is therefore \(O(1)\). If we used an order-one learning rate, then \(\Delta W_3=O(1)\) coordinatewise, and</p>
+    \[
+      \Delta f
+      =\Delta W_3x_2
+      \propto x_2^\top x_2
+      =\Theta(n).
+    \]
+    <p>The output would blow up with width.</p>
+    <p>The critical choice is therefore</p>
+    \[
+      \boxed{\eta_{W_3}=\frac{\eta}{n}}.
+    \]
+    <p>Then</p>
+    \[
+      \Delta W_3=O(n^{-1}),
+    \]
+    <p>and because the update is aligned with \(x_2\),</p>
+    \[
+      \Delta W_3x_2
+      =-\frac{\eta}{n}\chi\|x_2\|^2
+      =O(\eta).
+    \]
+    <p>The readout moves by an order-one amount, independent of width.</p>
+  </section>
+
+  <section id="lr-w2">
+    <h2>8. Why the hidden-layer SGD learning rate is \(\eta\)</h2>
+    <p>Backpropagate through the readout:</p>
+    \[
+      \delta_2
+      \equiv
+      \frac{\partial\ell}{\partial h_2}
+      =\chi W_3^\top\odot\phi'(h_2).
+    \]
+    <p>Since \(W_3=O(n^{-1})\),</p>
+    \[
+      \boxed{\delta_{2,i}=O(n^{-1})}.
+    \]
+    <p>The gradient of the hidden matrix is the outer product</p>
+    \[
+      \nabla_{W_2}\ell=\delta_2x_1^\top,
+    \]
+    <p>so its coordinates are also \(O(n^{-1})\). If we choose an order-one SGD learning rate,</p>
+    \[
+      \boxed{\eta_{W_2}=\eta},
+    \]
+    <p>then</p>
+    \[
+      \Delta W_2=O(n^{-1}).
+    \]
+    <p>Entrywise, this is smaller than the initialization \(W_{2,0}=O(n^{-1/2})\). But the relevant quantity is not the coordinatewise movement of the matrix; it is the induced feature movement:</p>
+    \[
+      \Delta W_2x_1
+      =-\eta\,\delta_2(x_1^\top x_1).
+    \]
+    <p>Since \(\delta_2=O(n^{-1})\) and \(x_1^\top x_1=\Theta(n)\),</p>
+    \[
+      \boxed{\Delta W_2x_1=O(\eta)}.
+    \]
+
+    <div class="remark"><strong>Important.</strong> A matrix can move much less than its initialization entrywise and still produce an order-one feature change, because its learned update has coherent low-rank structure. Small parameter motion does not automatically mean lazy feature dynamics.</div>
+  </section>
+
+  <section id="lr-w1">
+    <h2>9. Why the input-layer SGD learning rate is \(\eta n\)</h2>
+    <p>Backpropagate one layer further:</p>
+    \[
+      \delta_1
+      =W_2^\top\delta_2\odot\phi'(h_1).
+    \]
+    <p>At leading order, \(W_2\) has entries \(O(n^{-1/2})\), while \(\delta_2\) has entries \(O(n^{-1})\). One term in the sum therefore has size \(n^{-3/2}\). Summing \(n\) fresh random terms gives a CLT factor \(\sqrt n\), so</p>
+    \[
+      \delta_1=O(n^{-1}).
+    \]
+    <p>Thus</p>
+    \[
+      \nabla_{W_1}\ell=\delta_1\xi^\top
+    \]
+    <p>also has coordinate size \(O(n^{-1})\).</p>
+    <p>But unlike \(W_2\), the input matrix multiplies a fixed-dimensional vector \(\xi\in\mathbb{R}^d\). There is no width-sized inner product to amplify a small update. If we used an order-one LR,</p>
+    \[
+      \Delta W_1\xi=O(n^{-1})\to0,
+    \]
+    <p>and the first layer would freeze.</p>
+    <p>To keep its feature movement order one, the update must be amplified by \(n\):</p>
+    \[
+      \boxed{\eta_{W_1}=\eta n}.
+    \]
+    <p>Then</p>
+    \[
+      \Delta W_1=O(1),
+      \qquad
+      \boxed{\Delta W_1\xi=O(\eta)}.
+    \]
+  </section>
+
+  <section id="table">
+    <h2>10. The whole scaling in one table</h2>
+    <p>For this two-hidden-layer MLP, one convenient SGD form of μP is</p>
+    \[
+      W_1\sim\mathcal N(0,1/d),\qquad
+      W_2\sim\mathcal N(0,1/n),\qquad
+      W_3\sim\mathcal N(0,1/n^2),
+    \]
+    <p>with</p>
+    \[
+      \eta_{W_1}=\eta n,\qquad
+      \eta_{W_2}=\eta,\qquad
+      \eta_{W_3}=\frac{\eta}{n}.
+    \]
+    <table>
+      <thead>
+        <tr>
+          <th>Layer</th>
+          <th>Init coordinate size</th>
+          <th>Gradient size</th>
+          <th>SGD LR</th>
+          <th>Update size</th>
+          <th>Induced change</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>\(W_1:n\times d\)</td>
+          <td>\(1\)</td>
+          <td>\(1/n\)</td>
+          <td>\(\eta n\)</td>
+          <td>\(1\)</td>
+          <td>\(\Delta W_1\xi=O(\eta)\)</td>
+        </tr>
+        <tr>
+          <td>\(W_2:n\times n\)</td>
+          <td>\(1/\sqrt n\)</td>
+          <td>\(1/n\)</td>
+          <td>\(\eta\)</td>
+          <td>\(1/n\)</td>
+          <td>\(\Delta W_2x_1=O(\eta)\)</td>
+        </tr>
+        <tr>
+          <td>\(W_3:1\times n\)</td>
+          <td>\(1/n\)</td>
+          <td>\(1\)</td>
+          <td>\(\eta/n\)</td>
+          <td>\(1/n\)</td>
+          <td>\(\Delta W_3x_2=O(\eta)\)</td>
+        </tr>
+      </tbody>
+    </table>
+    <p>The design principle is therefore</p>
+    \[
+      \boxed{\Delta h_1,\;\Delta h_2,\;\Delta f=O(\eta)\quad\text{for every width }n.}
+    \]
+  </section>
+
+  <section id="sp-fails">
+    <h2>11. Why standard parametrization fails</h2>
+    <p>Standard parametrization uses roughly</p>
+    \[
+      W_1=O(1),\qquad
+      W_2=O(n^{-1/2}),\qquad
+      W_3=O(n^{-1/2}).
+    \]
+    <p>The readout is the problem. Since \(\nabla W_3=O(1)\), an order-one global LR makes</p>
+    \[
+      \Delta W_3=O(1),
+    \]
+    <p>and therefore</p>
+    \[
+      \Delta f\sim n.
+    \]
+    <p>The network blows up as width grows.</p>
+    <p>One can stabilize it by shrinking the global LR to \(O(1/n)\). But then hidden feature movement becomes too small. Roughly, the second-layer update becomes \(O(n^{-3/2})\), so</p>
+    \[
+      \Delta W_2x_1=O(n^{-1/2})\to0.
+    \]
+    <p>The network enters a lazy/kernel regime.</p>
+    <p>So standard parametrization presents a bad choice:</p>
+    \[
+      \boxed{\text{large LR} \Rightarrow \text{unstable output}},
+    \]
+    \[
+      \boxed{\text{small LR} \Rightarrow \text{frozen features}}.
+    \]
+    <p>TP IV's dynamical dichotomy makes this precise in its class of abc-parametrizations: stable nontrivial limits are either feature-learning or kernel-like, and μP lies on the feature-learning side.</p>
+  </section>
+
+  <section id="maximal">
+    <h2>12. Why it is called maximal update</h2>
+    <p>The word “maximal” is literal. For each layer, ask:</p>
+    <blockquote>How large can the update be, as a function of width, without making some activation or the output diverge?</blockquote>
+    <p>μP sits at that boundary. The induced feature changes remain order one:</p>
+    \[
+      \Delta W_1\xi=\Theta(1),
+      \qquad
+      \Delta W_2x_1=\Theta(1),
+      \qquad
+      \Delta W_3x_2=\Theta(1),
+    \]
+    <p>for suitable nondegenerate training routines. No layer is asymptotically frozen, and making the relevant update parametrically larger would violate stability.</p>
+    <p>TP IV formalizes a stronger statement in its parametrization class: μP is the unique stable choice for which all layers learn features maximally in the specified sense.</p>
+  </section>
+
+  <section id="abc">
+    <h2>13. How this matches TP IV's abc-parametrization</h2>
+    <p>TP IV writes</p>
+    \[
+      W_\ell=n^{-a_\ell}w_\ell,
+    \]
+    <p>initializes the trainable parameter as</p>
+    \[
+      (w_\ell)_{ij}\sim\mathcal N(0,n^{-2b_\ell}),
+    \]
+    <p>and uses a global SGD learning rate \(\eta n^{-c}\).</p>
+    <p>For μP,</p>
+    \[
+      c=0,\qquad b_\ell=\frac12,
+    \]
+    <p>while</p>
+    \[
+      a_1=-\frac12,
+      \qquad
+      a_{\text{hidden}}=0,
+      \qquad
+      a_{\text{out}}=\frac12.
+    \]
+    <p>Thus</p>
+    \[
+      W_1=\sqrt n\,w_1,\qquad
+      W_2=w_2,\qquad
+      W_3=\frac1{\sqrt n}w_3,
+    \]
+    <p>with every \(w\)-coordinate initialized at scale \(n^{-1/2}\). This gives the effective initialization scales</p>
+    \[
+      W_1=O(1),\qquad
+      W_2=O(n^{-1/2}),\qquad
+      W_3=O(n^{-1}).
+    \]
+    <p>If \(W=s w\) and SGD updates \(w\) with LR \(\eta\), then</p>
+    \[
+      \frac{\partial\ell}{\partial w}
+      =s\frac{\partial\ell}{\partial W},
+    \]
+    <p>so</p>
+    \[
+      \Delta W
+      =s\Delta w
+      =-\eta s^2\frac{\partial\ell}{\partial W}.
+    \]
+    <p>The effective LR on \(W\) is therefore \(\eta s^2\). Plugging in the three multipliers gives</p>
+    \[
+      s_1=\sqrt n\Rightarrow \eta_{W_1}=\eta n,
+    \]
+    \[
+      s_2=1\Rightarrow \eta_{W_2}=\eta,
+    \]
+    \[
+      s_3=n^{-1/2}\Rightarrow \eta_{W_3}=\eta/n.
+    \]
+    <p>So the abstract abc formulation in IV and the practical per-layer recipe in V are the same scaling written in different coordinates.</p>
+  </section>
+
+  <section id="equivalent-forms">
+    <h2>14. Equivalent ways to write μP</h2>
+    <p>There is no single sacred literal representation of μP. Width factors can be moved between</p>
+    <ul>
+      <li>initialization scale,</li>
+      <li>explicit parameter multipliers in the forward pass, and</li>
+      <li>learning-rate scale,</li>
+    </ul>
+    <p>provided the resulting function and training dynamics are equivalent.</p>
+    <p>For example, instead of literally drawing \(W_3\) with variance \(1/n^2\), one can initialize an underlying parameter at the more familiar \(1/n\) variance and place an explicit \(1/\sqrt n\) multiplier in the forward map. The optimizer scaling changes correspondingly.</p>
+    <p>TP V gives several equivalent μP tables for exactly this reason.</p>
+
+    <div class="remark"><strong>Invariant content.</strong> The important statement is not “initialize this Python tensor with exactly this variance.” It is that the <em>effective map</em>, initialization, and update all have the critical width scaling required for order-one feature dynamics.</div>
+  </section>
+
+  <section id="transfer">
+    <h2>15. From TP IV to TP V: why μTransfer is plausible</h2>
+    <p>Now the practical insight of TP V becomes almost inevitable.</p>
+    <p>Under μP, one master learning-rate parameter \(\eta\) induces</p>
+    \[
+      \eta_{W_1}=\eta n,
+      \qquad
+      \eta_{W_2}=\eta,
+      \qquad
+      \eta_{W_3}=\eta/n,
+    \]
+    <p>and therefore</p>
+    \[
+      \Delta h_1=O(\eta),\qquad
+      \Delta h_2=O(\eta),\qquad
+      \Delta f=O(\eta),
+    \]
+    <p>at every width.</p>
+    <p>So the number \(\eta\) has the same <em>dynamical meaning</em> at width 128 and width 8192: it controls an order-one normalized step in the limiting feature-learning dynamics.</p>
+    <p>In standard parametrization, the same raw LR can correspond to a width-dependent effect such as \(\Delta f\sim \eta n\). Then the semantic meaning of “learning rate \(10^{-3}\)” changes with width, and there is no reason its optimum should stay fixed.</p>
+
+    <h3>The toy-model intuition</h3>
+    <p>TP V illustrates this with a CLT example. Suppose</p>
+    \[
+      F_n(c)=\mathbb E f\!\left(c\sum_{i=1}^n x_i\right).
+    \]
+    <p>The raw coordinate \(c\) is badly scaled. Write instead</p>
+    \[
+      c=\frac{\alpha}{\sqrt n}.
+    \]
+    <p>Then the family of objectives can converge to a fixed limiting function of \(\alpha\):</p>
+    \[
+      F_n(\alpha/\sqrt n)\longrightarrow G_\infty(\alpha).
+    \]
+    <p>If this convergence is sufficiently well behaved, then the optimizing coordinate stabilizes:</p>
+    \[
+      \alpha_n^\star\longrightarrow \alpha_\infty^\star.
+    \]
+    <p>μP plays the role of identifying the analogous normalized coordinates for a whole neural network.</p>
+  </section>
+
+  <section id="copy">
+    <h2>16. What actually gets transferred</h2>
+    <p>One does not generally copy the literal per-layer learning rates between a proxy and a target model. One copies the <em>width-independent master hyperparameter</em>.</p>
+    <p>If a base model has width \(n_0\) and a target model has width \(n\), define</p>
+    \[
+      \widetilde n=\frac{n}{n_0}.
+    \]
+    <p>A base-shape version of the SGD rule can be written as</p>
+    \[
+      \eta_{W_1}=\eta\widetilde n,
+      \qquad
+      \eta_{W_2}=\eta,
+      \qquad
+      \eta_{W_3}=\frac{\eta}{\widetilde n}.
+    \]
+    <p>At \(n=n_0\), all width multipliers equal one, so the chosen base model can be exactly backward-compatible with a conventional implementation. As width changes, μP specifies how the optimizer and parameter multipliers must deform.</p>
+    <p>Thus μP is better understood as a <em>scaling rule</em> than as an absolute prescription at one fixed width.</p>
+  </section>
+
+  <section id="limits">
+    <h2>17. Why an arbitrary infinite-width limit is not enough</h2>
+    <p>A standard network with a sufficiently small learning rate can also have a perfectly legitimate infinite-width limit. The NTK regime is the canonical example.</p>
+    <p>But in a kernel limit, hidden features freeze. Then some layerwise learning rates cease to influence the infinite-width dynamics even though they still matter at finite width. In that situation the limiting model has lost the same hyperparameter semantics as the finite network.</p>
+    <p>This is a deeper reason maximal feature learning matters for transfer: every parameter tensor continues to have an order-one effect in the normalized limiting dynamics.</p>
+    <p>TP V's empirical claim is that these normalized coordinates make many important hyperparameter optima approximately stable across width. It also explicitly notes a remaining theoretical puzzle: the optimum often converges much faster than the full trained function or loss itself. In the paper's language, the HP optimum appears to behave like a coarse or macroscopic variable.</p>
+
+    <div class="remark"><strong>Formal versus empirical.</strong> TP IV rigorously classifies the width-scaling regimes and identifies maximal feature learning. TP V gives theoretical motivation for μTransfer and then validates it empirically at substantial scale; a complete theory for the fast convergence of optimal hyperparameters is not supplied there.</div>
+  </section>
+
+  <section id="vi-analogy">
+    <h2>18. The common principle behind IV and VI</h2>
+    <p>The width and depth theories can be aligned almost line by line.</p>
+    <table>
+      <thead><tr><th>Width-μP</th><th>Depth-μP</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>random Gaussian action accumulates like \(\sqrt n\)</td>
+          <td>random residual increments accumulate like \(\sqrt L\)</td>
+        </tr>
+        <tr>
+          <td>learned correlated matrix action accumulates like \(n\)</td>
+          <td>learned correlated residual drift accumulates like \(L\)</td>
+        </tr>
+        <tr>
+          <td>hidden init scale \(n^{-1/2}\)</td>
+          <td>branch init scale \(L^{-1/2}\)</td>
+        </tr>
+        <tr>
+          <td>hidden learned update scale \(n^{-1}\)</td>
+          <td>learned branch contribution scale \(L^{-1}\)</td>
+        </tr>
+      </tbody>
+    </table>
+    <p>The common conceptual rule is</p>
+    \[
+      \boxed{\text{initialization is controlled by CLT scaling; training is controlled by coherent/LLN scaling.}}
+    \]
+    <p>That is the thread connecting TP IV, V, and VI.</p>
+  </section>
+
+  <section id="takeaway">
+    <h2>19. Five equations to remember</h2>
+    <div class="equation-summary">
+      \[
+        \boxed{W_1=O(1),\qquad W_2=O(n^{-1/2}),\qquad W_3=O(n^{-1})},
+      \]
+      \[
+        \boxed{\eta_{W_1}=\eta n,\qquad \eta_{W_2}=\eta,\qquad \eta_{W_3}=\eta/n},
+      \]
+      \[
+        \boxed{\Delta W_1\xi=O(\eta)},
+      \]
+      \[
+        \boxed{\Delta W_2x_1=O(\eta)},
+      \]
+      \[
+        \boxed{\Delta W_3x_2=O(\eta)}.
+      \]
+    </div>
+    <p>The last three equations are the essence of μP: one master \(\eta\) produces the same order-one dynamical effect at every layer and every width. That is why the master hyperparameter has a chance to μ-transfer.</p>
+  </section>
+
+  <section id="references">
+    <h2>References</h2>
+    <ol class="refs">
+      <li>Greg Yang and Edward J. Hu. <em>Tensor Programs IV: Feature Learning in Infinite-Width Neural Networks</em>. ICML 2021. <a href="https://proceedings.mlr.press/v139/yang21c.html">PMLR</a>.</li>
+      <li>Greg Yang, Edward J. Hu, Igor Babuschkin, Szymon Sidor, Xiaodong Liu, David Farhi, Nick Ryder, Jakub Pachocki, Weizhu Chen, and Jianfeng Gao. <em>Tensor Programs V: Tuning Large Neural Networks via Zero-Shot Hyperparameter Transfer</em>. 2022. <a href="https://arxiv.org/abs/2203.03466">arXiv:2203.03466</a>.</li>
+      <li>Greg Yang, Dingli Yu, Chen Zhu, and Soufiane Hayou. <em>Tensor Programs VI: Feature Learning in Infinite-Depth Neural Networks</em>. ICLR 2024. <a href="https://arxiv.org/abs/2310.02244">arXiv:2310.02244</a>.</li>
+    </ol>
+    <p class="small">These are expository working notes based on the Tensor Programs papers. The original papers should be taken as the source for precise assumptions, theorem statements, and proofs.</p>
+  </section>
+</main>
+
+<footer>
+  <a href="../../index.html">dmartinezt.github.io</a> · research notes
+</footer>
+</body>
+</html>
